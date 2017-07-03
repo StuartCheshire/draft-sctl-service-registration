@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+
+<!--
+Check output with <http://tools.ietf.org/tools/idnits/>
+-->
+
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs),
+     please see http://xml.resource.org/authoring/README.html. -->
+<!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
+     (Here they are set differently than their defaults in xml2rfc v1.35) -->
+
+<!-- give errors regarding ID-nits and DTD validation -->
+<?rfc strict="yes" ?>
+
+<!-- control the table of contents (ToC) -->
+<!-- generate a ToC -->
+<?rfc toc="no"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<?rfc tocdepth="3"?>
+
+<!-- control references -->
+<!-- use anchors instead of numbers for refs, i.e, [RFC2119] instead of [1] -->
+<?rfc symrefs="yes"?>
+<!-- sort the reference entries alphabetically -->
+<?rfc sortrefs="no" ?>
+
+<!-- control vertical white space
+     (using these PIs as follows is recommended by the RFC Editor) -->
+<!-- do not start each main section on a new page -->
+<?rfc compact="yes" ?>
+<!-- keep one blank line between list items -->
+<?rfc subcompact="no" ?>
+
+<!-- encourage use of "xml2rfc" tool -->
+<?rfc rfcprocack="yes" ?>
+<!-- end of list of popular I-D processing instructions -->
+
+<rfc category="info" docName="draft-sctl-service-registration-00" ipr="trust200902">
+
+  <front>
+    <title abbrev='Service Registration Protocol'>Service Registration Protocol for DNS-Based Service Discovery</title>
+    <author initials='S' surname='Cheshire' fullname='Stuart Cheshire'>
+      <organization>Apple Inc.</organization>
+      <address>
+        <postal>
+          <street>1 Infinite Loop</street>
+          <city>Cupertino</city>
+          <region>California</region>
+          <code>95014</code>
+          <country>USA</country>
+        </postal>
+        <phone>+1 408 974 3207</phone>
+        <email>cheshire@apple.com</email>
+      </address>
+    </author>
+
+    <author initials="T" surname="Lemon" fullname="Ted Lemon">
+      <organization>Nominum, Inc.</organization>
+      <address>
+        <postal>
+          <street>800 Bridge Parkway</street>
+          <city>Redwood City</city>
+          <region>California</region>
+          <country>United States of America</country>
+          <code>94065</code>
+        </postal>
+        <phone>+1 650 381 6000</phone>
+        <email>ted.lemon@nominum.com</email>
+      </address>
+    </author>
+
+    <date year='2017' month='July' day='2'/>
+    <area>Internet</area>
+    <workgroup>Internet Engineering Task Force</workgroup>
+    <keyword>Multicast DNS</keyword>
+    <keyword>DNS-Based Service Discovery</keyword>
+    <keyword>RFC</keyword>
+    <keyword>Request for Comments</keyword>
+    <keyword>I-D</keyword>
+    <keyword>Internet-Draft</keyword>
+    <abstract>
+      <t>The DNS-SD Service Registration Protocol provides a way to
+      perform DNS-Based Service Discovery using only unicast packets.
+      This eliminates the dependency on Multicast DNS as the foundation layer,
+      which has worked well in some environments, like the simplest of home networks,
+      but not in others, like large enterprise networks
+      (where multicast does not scale well to thousands of devices)
+      and mesh networks
+      (where multicast and broadcast are supported poorly, if at all).
+      Broadly speaking, the DNS-SD Service Registration Protocol is
+      DNS Update, with a few additions.
+      </t>
+    </abstract>
+  </front>
+
+  <middle>
+
+    <section title="Introduction">
+      <t><xref target="RFC6763">DNS-Based Service Discovery</xref>
+      is a component of Zero Configuration Networking
+      <xref target="RFC6760"/> <xref target="ZC"/> <xref target="Roadmap"/>.</t>
+
+      <t>There are two facets of DNS-Based Service Discovery to consider:<vspace />
+      how relevant information makes its way into the DNS namespace<vspace />
+      (how a server offers its services to interested clients)
+      and how clients access that information
+      (how an interested client discovers and uses a service instance).
+      </t>
+
+      <t>This document is concerned with the first of those two facets:<vspace />
+      how relevant information makes its way into the DNS namespace.</t>
+
+      <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref>
+      Section 10 “Populating the DNS with Information” briefly discusses
+      ways that relevant information can make its way into the DNS namespace.
+      In the case of <xref target="RFC6762">Multicast DNS</xref>, the relevant information
+      trivially becomes visible in the “.local” namespace by virtue of devices answering for themselves.
+      For unicast DNS names, ways that information makes its way into the DNS namespace
+      include manual configuration of DNS zone files,
+      possibly assisted using tools such as the “dns-sd -Z” command,
+      automated tools such as a <xref target="DisProx">Discovery Proxy</xref>,
+      or explicit registration by the services themselves.
+      It is the last option -- explicit registration by the services themselves --
+      that is the subject of this document.</t>
+
+    <?rfc needLines="20" ?>
+    </section>
+
+    <section title="Service Registration Protocol">
+
+      <t>The DNS-SD Service Registration Protocol is largely built on
+      DNS Update <xref target="RFC2136"/> <xref target="RFC3007"/>,
+      with some additions.</t>
+
+      <t>When a device advertises services using Multicast DNS,
+      the parent domain is implicitly “.local”.</t>
+
+      <t>When a device advertises services in the traditional unicast DNS namespace,
+      it needs to know the parent domain name for its services.
+      This parent domain can be manually configured by a human operator,
+      or learned from the network.
+      In the <xref target="RFC6763">DNS-SD specification</xref> section 11,
+      “Discovery of Browsing and Registration Domains (Domain Enumeration)”,
+      describes how a client device can learn a recommended default
+      registration domain from the network.</t>
+
+      <t>In the remainder of this document,
+      <xref target="cleanup"/> covers cleanup of stale data, and
+      <xref target="sleep"/> covers advertising services on behalf of devices
+      that are sleeping to reduce power consumption.</t>
+
+      <t>The final question is security.
+      Most dynamic DNS servers will not accept unauthenticated updates.
+      In the case of manual configuration of registration domain by a human operator,
+      the human operator can also configure an appropriate TSIG security key.
+      In the case of automatic configuration via DNS-SD Domain Enumeration queries,
+      it would be nice to also have zero-configuration security.
+      While at first glance zero-configuration security may seem to be a self-contradiction,
+      this document proposes a simple first-come first-served security mechanism,
+      described below in <xref target="fcfs"/>.</t>
+
+    <?rfc needLines="20" ?>
+    </section>
+
+    <section anchor="cleanup" title="Cleanup of Stale Data">
+
+      <t>The traditional DNS Update mechanisms
+      <xref target="RFC2136"/> <xref target="RFC3007"/>
+      implicitly assume they are being used by a human operator.
+      If a human operator uses DNS Update (perhaps via the ‘nsupdate’ command)
+      to create a record, then that record should stay created until the
+      human operator decides to remove it.</t>
+
+      <t>The same assumptions do not apply to machine-generated records.
+      If a mobile device creates one or more records using DNS Update,
+      and later unceremoniously departs the network,
+      then those stale records should eventually be removed.</t>
+
+      <t>The mechanism proposed here is modeled on DHCP.
+      Just like a DHCP address lease,
+      a record created using DNS Update has a lifetime.
+      If the record is not refreshed before its lifetime expires,
+      then the record is deleted.</t>
+
+      <t>When a client performs a DNS Update, it includes a
+      <xref target="DNS-UL">DNS Update Lease option</xref>.
+      The DNS Update Lease option indicates the lifetime of the
+      records created or updated in the associated DNS Update message.
+      If the records are not refreshed before the lifetime expires,
+      then the records are deleted.</t>
+
+      <t>DNS servers may be configured to refuse DNS Updates
+      that do not include a DNS Update Lease option.</t>
+
+    <?rfc needLines="25" ?>
+    </section>
+
+    <section anchor="sleep" title="Sleep Proxy">
+
+      <t>Another use of Service Registration Protocol is for devices
+      that sleep to reduce power consumption.</t>
+
+      <t>In this case, in addition to the
+      <xref target="DNS-UL">DNS Update Lease option</xref>
+      described above, the device includes an
+      <xref target="Owner">EDNS0 OWNER Option</xref>.</t>
+
+      <t>The DNS Update Lease option constitutes a promise by the device
+      that it will wake up before this time elapses, to renew its records
+      and thereby demonstrate that it is still attached to the network.
+      If it fails to renew the records by this time, that indicates that it is
+      no longer attached to the network, and its records should be deleted.</t>
+
+      <t>The EDNS0 OWNER Option indicates that the device will be asleep,
+      and will not be receptive to normal network traffic.
+      When a DNS server receives a DNS Update with an EDNS0 OWNER Option,
+      that signifies that the DNS server should act as a proxy for any
+      IPv4 or IPv6 address records in the DNS Update message.
+      This means that the DNS server should send ARP or ND messages claiming
+      ownership of the IPv4 and/or IPv6 addresses in the records in question.
+      In addition, the DNS server should answer future ARP or ND requests
+      for those IPv4 and/or IPv6 addresses, claiming ownership of them.
+      When the DNS server receives a TCP SYN or UDP packet addressed to
+      one of the IPv4 or IPv6 addresses for which it proxying, it should
+      then wake up the sleeping device using the information in the
+      EDNS0 OWNER Option. At present version 0 of the OWNER Option
+      specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
+      future versions could be extended to specify other wakeup mechanisms.</t>
+
+    <?rfc needLines="25" ?>
+    </section>
+
+    <section anchor="fcfs" title="First-Come First-Served Naming">
+
+      <t>In some environments, such as home networks with an appropriate border gateway,
+      it may be preferable to have some limited security on the protected internal network
+      rather than no security at all.</t>
+
+      <t>Users have shown limited willingness to endure complicated
+      configuration for their networked home devices.
+      It is rare for home users to change even the factory-default name for
+      their wireless printer, so it’s questionable whether it’s reasonable
+      to expect them to configure passwords or security keys.</t>
+
+      <t>This document proposes a zero-configuration first-come
+      first-served naming mechanism.</t>
+
+      <t>Instead of requiring a preconfigured key installed by manual administration,
+      a new device optimistically creates its DNS Service Discovery records,
+      plus a DNS SIG(0) public key,
+      using a DNS Update signed with its DNS SIG(0) private key.</t>
+
+      <t>If the requested name does not already exist, then it is created.
+      If the requested name already exists, then its data is only updated if the
+      DNS SIG(0) signature matches the pre-existing DNS SIG(0) public key
+      already stored by the DNS server.</t>
+
+      <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV and TXT records</xref>
+      is typically set to two hours.
+      That way, if a device is disconnected from the network,
+      its stale data does not persist for too long,
+      advertising a service that is not accessible.</t>
+
+      <t>However, the lifetime of its DNS SIG(0) public key should be set
+      to a much longer time, typically 14 days.
+      The result of this is that even though a device may be temporarily unplugged,
+      disappearing from the network for a few day,
+      it makes a claim on its name that lasts much longer.</t>
+
+      <t>This way, even if a device is unplugged from the network for a few days,
+      and its services are not available for that time, no other rogue device
+      can come along and immediately claim its name the moment it disappears
+      from the network.
+      It takes a much longer time before an abandoned
+      name becomes available for re-use.</t>
+
+    <?rfc needLines="20" ?>
+    </section>
+
+  </middle>
+
+  <back>
+    <!-- <displayreference target="I-D.ietf-dnssd-hybrid" to="DisProx"/> appears to not work in xml2rfc 2.6.2 -->
+    <references title="Normative References">
+      <?rfc include="reference.RFC.6763" ?>
+    </references>
+
+    <references title="Informative References">
+
+      <?rfc include="reference.RFC.2136" ?>
+      <?rfc include="reference.RFC.3007" ?>
+      <?rfc include="reference.RFC.6760" ?>
+      <?rfc include="reference.RFC.6762" ?>
+      <?rfc include="reference.I-D.ietf-dnssd-hybrid"           anchor='DisProx' ?>
+      <?rfc include="reference.I-D.sekar-dns-ul"                anchor='DNS-UL' ?>
+      <?rfc include="reference.I-D.cheshire-dnssd-roadmap"      anchor='Roadmap' ?>
+      <?rfc include="reference.I-D.cheshire-edns0-owner-option" anchor='Owner' ?>
+
+      <reference anchor="ZC">
+        <front>
+          <title>Zero Configuration Networking: The Definitive Guide</title>
+          <author initials="S." surname="Cheshire" fullname="Stuart Cheshire"/>
+          <author initials="D.H." surname="Steinberg" fullname="Daniel H. Steinberg"/>
+          <date year="2005" month="December"/>
+        </front>
+        <seriesInfo name="O'Reilly Media, Inc." value=""/>
+        <seriesInfo name="ISBN" value="0-596-10100-7"/>
+      </reference>
+
+    </references>
+  </back>
+</rfc>
