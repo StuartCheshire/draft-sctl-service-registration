@@ -188,17 +188,17 @@ Internet-Draft        Service Registration Protocol            July 2017
    the record is not refreshed before its lifetime expires, then the
    record is deleted.
 
-   When a client performs a DNS Update, it includes a DNS Update Lease
-   option [DNS-UL].  The DNS Update Lease option indicates the lifetime
-   of the records created or updated in the associated DNS Update
-   message.  If the records are not refreshed before the lifetime
-   expires, then the records are deleted.
+   When a client performs a DNS Update, it includes a EDNS(0) Update
+   Lease option [DNS-UL].  The DNS Update Lease option indicates the
+   requested lifetime of the records created or updated in the
+   associated DNS Update message.  In the DNS Update reply, the server
+   returns its own EDNS(0) Update Lease option indicating the granted
+   lifetime, which may be shorter, the same, or longer than the client
+   requested.  If the records are not refreshed before the granted
+   lifetime expires, then the records are deleted.
 
    DNS servers may be configured to refuse DNS Updates that do not
    include a DNS Update Lease option.
-
-
-
 
 
 
@@ -232,7 +232,7 @@ Internet-Draft        Service Registration Protocol            July 2017
    sleep to reduce power consumption.
 
    In this case, in addition to the DNS Update Lease option [DNS-UL]
-   described above, the device includes an EDNS0 OWNER Option [Owner].
+   described above, the device includes an EDNS(0) OWNER Option [Owner].
 
    The DNS Update Lease option constitutes a promise by the device that
    it will wake up before this time elapses, to renew its records and
@@ -240,21 +240,21 @@ Internet-Draft        Service Registration Protocol            July 2017
    fails to renew the records by this time, that indicates that it is no
    longer attached to the network, and its records should be deleted.
 
-   The EDNS0 OWNER Option indicates that the device will be asleep, and
-   will not be receptive to normal network traffic.  When a DNS server
-   receives a DNS Update with an EDNS0 OWNER Option, that signifies that
-   the DNS server should act as a proxy for any IPv4 or IPv6 address
-   records in the DNS Update message.  This means that the DNS server
-   should send ARP or ND messages claiming ownership of the IPv4 and/or
-   IPv6 addresses in the records in question.  In addition, the DNS
-   server should answer future ARP or ND requests for those IPv4 and/or
-   IPv6 addresses, claiming ownership of them.  When the DNS server
-   receives a TCP SYN or UDP packet addressed to one of the IPv4 or IPv6
-   addresses for which it proxying, it should then wake up the sleeping
-   device using the information in the EDNS0 OWNER Option.  At present
-   version 0 of the OWNER Option specifies the “Wake-on-LAN Magic
-   Packet” that needs to be sent; future versions could be extended to
-   specify other wakeup mechanisms.
+   The EDNS(0) OWNER Option indicates that the device will be asleep,
+   and will not be receptive to normal network traffic.  When a DNS
+   server receives a DNS Update with an EDNS(0) OWNER Option, that
+   signifies that the DNS server should act as a proxy for any IPv4 or
+   IPv6 address records in the DNS Update message.  This means that the
+   DNS server should send ARP or ND messages claiming ownership of the
+   IPv4 and/or IPv6 addresses in the records in question.  In addition,
+   the DNS server should answer future ARP or ND requests for those IPv4
+   and/or IPv6 addresses, claiming ownership of them.  When the DNS
+   server receives a TCP SYN or UDP packet addressed to one of the IPv4
+   or IPv6 addresses for which it proxying, it should then wake up the
+   sleeping device using the information in the EDNS(0) OWNER Option.
+   At present version 0 of the OWNER Option specifies the “Wake-on-LAN
+   Magic Packet” that needs to be sent; future versions could be
+   extended to specify other wakeup mechanisms.
 
 
 
@@ -294,7 +294,7 @@ Internet-Draft        Service Registration Protocol            July 2017
    printer, so it’s questionable whether it’s reasonable to expect them
    to configure passwords or security keys.
 
-   This document proposes a zero-configuration first-come first-served
+   This document presents a zero-configuration first-come first-served
    naming mechanism.
 
    Instead of requiring a preconfigured key installed by manual
@@ -302,10 +302,12 @@ Internet-Draft        Service Registration Protocol            July 2017
    Discovery records, plus a DNS SIG(0) public key, using a DNS Update
    signed with its DNS SIG(0) private key.
 
-   If the requested name does not already exist, then it is created.  If
-   the requested name already exists, then its data is only updated if
-   the DNS SIG(0) signature matches the pre-existing DNS SIG(0) public
-   key already stored by the DNS server.
+   The DNS server validates the signature on the message using the
+   SIG(0) key already stored on the name, if present, and otherwise with
+   the key sent in the update, if the requested name is not yet present.
+   The server may check that the two public keys are the same before
+   validating, and refuse the update if they are not, to avoid the cost
+   of verifying the signature.
 
    The lifetime of the DNS-SD PTR, SRV and TXT records [RFC6763] is
    typically set to two hours.  That way, if a device is disconnected
@@ -315,7 +317,7 @@ Internet-Draft        Service Registration Protocol            July 2017
    However, the lifetime of its DNS SIG(0) public key should be set to a
    much longer time, typically 14 days.  The result of this is that even
    though a device may be temporarily unplugged, disappearing from the
-   network for a few day, it makes a claim on its name that lasts much
+   network for a few days, it makes a claim on its name that lasts much
    longer.
 
    This way, even if a device is unplugged from the network for a few
@@ -324,12 +326,10 @@ Internet-Draft        Service Registration Protocol            July 2017
    it disappears from the network.  It takes a much longer time before
    an abandoned name becomes available for re-use.
 
-
-
-
-
-
-
+   When using this first-come first-served security mechanism, the
+   server accepting or rejecting the updates utilizes knowledge of the
+   DNS-Based Service Discovery semantics [RFC6763].  Specifically, for
+   all records aside from PTR records, the update must be validly signed
 
 
 
@@ -338,15 +338,71 @@ Cheshire & Lemon         Expires January 3, 2018                [Page 6]
 Internet-Draft        Service Registration Protocol            July 2017
 
 
-6.  References
+   using the SIG(0) key with the same DNS resource record owner name
+   (the name on the left in a traditional textual zone file).  For
+   additions or deletions of PTR records, the update must be validly
+   signed using the SIG(0) key with the same DNS resource record owner
+   name as the rdata in the PTR record (the name on the right in a
+   traditional textual zone file).
 
-6.1.  Normative References
+6.  Security Considerations
+
+   To be completed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cheshire & Lemon         Expires January 3, 2018                [Page 7]
+
+Internet-Draft        Service Registration Protocol            July 2017
+
+
+7.  References
+
+7.1.  Normative References
 
    [RFC6763]  Cheshire, S. and M. Krochmal, "DNS-Based Service
               Discovery", RFC 6763, DOI 10.17487/RFC6763, February 2013,
               <http://www.rfc-editor.org/info/rfc6763>.
 
-6.2.  Informative References
+7.2.  Informative References
 
    [RFC2136]  Vixie, P., Ed., Thomson, S., Rekhter, Y., and J. Bound,
               "Dynamic Updates in the Domain Name System (DNS UPDATE)",
@@ -389,7 +445,7 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 7]
+Cheshire & Lemon         Expires January 3, 2018                [Page 8]
 
 Internet-Draft        Service Registration Protocol            July 2017
 
@@ -445,4 +501,4 @@ Authors' Addresses
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 8]
+Cheshire & Lemon         Expires January 3, 2018                [Page 9]

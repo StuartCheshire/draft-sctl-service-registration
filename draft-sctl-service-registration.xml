@@ -187,10 +187,13 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       then the record is deleted.</t>
 
       <t>When a client performs a DNS Update, it includes a
-      <xref target="DNS-UL">DNS Update Lease option</xref>.
-      The DNS Update Lease option indicates the lifetime of the
+      <xref target="DNS-UL">EDNS(0) Update Lease option</xref>.
+      The DNS Update Lease option indicates the requested lifetime of the
       records created or updated in the associated DNS Update message.
-      If the records are not refreshed before the lifetime expires,
+      In the DNS Update reply, the server returns its own EDNS(0) Update
+      Lease option indicating the granted lifetime, which may be
+      shorter, the same, or longer than the client requested. If the
+      records are not refreshed before the granted lifetime expires,
       then the records are deleted.</t>
 
       <t>DNS servers may be configured to refuse DNS Updates
@@ -207,7 +210,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <t>In this case, in addition to the
       <xref target="DNS-UL">DNS Update Lease option</xref>
       described above, the device includes an
-      <xref target="Owner">EDNS0 OWNER Option</xref>.</t>
+      <xref target="Owner">EDNS(0) OWNER Option</xref>.</t>
 
       <t>The DNS Update Lease option constitutes a promise by the device
       that it will wake up before this time elapses, to renew its records
@@ -215,9 +218,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       If it fails to renew the records by this time, that indicates that it is
       no longer attached to the network, and its records should be deleted.</t>
 
-      <t>The EDNS0 OWNER Option indicates that the device will be asleep,
+      <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
       and will not be receptive to normal network traffic.
-      When a DNS server receives a DNS Update with an EDNS0 OWNER Option,
+      When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
       that signifies that the DNS server should act as a proxy for any
       IPv4 or IPv6 address records in the DNS Update message.
       This means that the DNS server should send ARP or ND messages claiming
@@ -227,7 +230,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       When the DNS server receives a TCP SYN or UDP packet addressed to
       one of the IPv4 or IPv6 addresses for which it proxying, it should
       then wake up the sleeping device using the information in the
-      EDNS0 OWNER Option. At present version 0 of the OWNER Option
+      EDNS(0) OWNER Option. At present version 0 of the OWNER Option
       specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
       future versions could be extended to specify other wakeup mechanisms.</t>
 
@@ -246,7 +249,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       their wireless printer, so it’s questionable whether it’s reasonable
       to expect them to configure passwords or security keys.</t>
 
-      <t>This document proposes a zero-configuration first-come
+      <t>This document presents a zero-configuration first-come
       first-served naming mechanism.</t>
 
       <t>Instead of requiring a preconfigured key installed by manual administration,
@@ -254,10 +257,12 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       plus a DNS SIG(0) public key,
       using a DNS Update signed with its DNS SIG(0) private key.</t>
 
-      <t>If the requested name does not already exist, then it is created.
-      If the requested name already exists, then its data is only updated if the
-      DNS SIG(0) signature matches the pre-existing DNS SIG(0) public key
-      already stored by the DNS server.</t>
+      <t>The DNS server validates the signature on the message using the
+      SIG(0) key already stored on the name, if present, and otherwise
+      with the key sent in the update, if the requested name is not yet present.
+      The server may check that the two public keys are the
+      same before validating, and refuse the update if they are not,
+      to avoid the cost of verifying the signature.</t>
 
       <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV and TXT records</xref>
       is typically set to two hours.
@@ -268,7 +273,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <t>However, the lifetime of its DNS SIG(0) public key should be set
       to a much longer time, typically 14 days.
       The result of this is that even though a device may be temporarily unplugged,
-      disappearing from the network for a few day,
+      disappearing from the network for a few days,
       it makes a claim on its name that lasts much longer.</t>
 
       <t>This way, even if a device is unplugged from the network for a few days,
@@ -278,7 +283,24 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       It takes a much longer time before an abandoned
       name becomes available for re-use.</t>
 
-    <?rfc needLines="20" ?>
+      <t>When using this first-come first-served security mechanism, the server
+      accepting or rejecting the updates utilizes knowledge of the
+      <xref target="RFC6763">DNS-Based Service Discovery semantics</xref>.
+      Specifically, for all records aside from PTR records, the update must be validly
+      signed using the SIG(0) key with the same DNS resource record owner name
+      (the name on the left in a traditional textual zone file).
+      For additions or deletions of PTR records, the update must be validly
+      signed using the SIG(0) key with the same DNS resource record owner name
+      as the rdata in the PTR record
+      (the name on the right in a traditional textual zone file).</t>
+
+    <?rfc needLines="25" ?>
+    </section>
+
+    <section title="Security Considerations">
+      <t>To be completed.</t>
+
+    <?rfc needLines="45" ?>
     </section>
 
   </middle>
@@ -296,9 +318,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.6760" ?>
       <?rfc include="reference.RFC.6762" ?>
       <?rfc include="reference.I-D.ietf-dnssd-hybrid"           anchor='DisProx' ?>
-      <?rfc include="reference.I-D.sekar-dns-ul"                anchor='DNS-UL' ?>
+      <?rfc include="reference.I-D.sekar-dns-ul"                anchor='DNS-UL'  ?>
       <?rfc include="reference.I-D.cheshire-dnssd-roadmap"      anchor='Roadmap' ?>
-      <?rfc include="reference.I-D.cheshire-edns0-owner-option" anchor='Owner' ?>
+      <?rfc include="reference.I-D.cheshire-edns0-owner-option" anchor='Owner'   ?>
 
       <reference anchor="ZC">
         <front>
