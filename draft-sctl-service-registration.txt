@@ -79,14 +79,14 @@ Internet-Draft        Service Registration Protocol            July 2017
    how relevant information makes its way into the DNS namespace.
 
    In the DNS-Based Service Discovery specification [RFC6763] Section 10
-   “Populating the DNS with Information” briefly discusses ways that
+   "Populating the DNS with Information" briefly discusses ways that
    relevant information can make its way into the DNS namespace.  In the
    case of Multicast DNS [RFC6762], the relevant information trivially
-   becomes visible in the “.local” namespace by virtue of devices
+   becomes visible in the ".local" namespace by virtue of devices
    answering for themselves.  For unicast DNS names, ways that
    information makes its way into the DNS namespace include manual
    configuration of DNS zone files, possibly assisted using tools such
-   as the “dns-sd -Z” command, automated tools such as a Discovery Proxy
+   as the "dns-sd -Z" command, automated tools such as a Discovery Proxy
    [DisProx], or explicit registration by the services themselves.  It
    is the last option -- explicit registration by the services
    themselves -- that is the subject of this document.
@@ -120,14 +120,14 @@ Internet-Draft        Service Registration Protocol            July 2017
    Update [RFC2136] [RFC3007], with some additions.
 
    When a device advertises services using Multicast DNS, the parent
-   domain is implicitly “.local”.
+   domain is implicitly ".local".
 
    When a device advertises services in the traditional unicast DNS
    namespace, it needs to know the parent domain name for its services.
    This parent domain can be manually configured by a human operator, or
    learned from the network.  In the DNS-SD specification [RFC6763]
-   section 11, “Discovery of Browsing and Registration Domains (Domain
-   Enumeration)”, describes how a client device can learn a recommended
+   section 11, "Discovery of Browsing and Registration Domains (Domain
+   Enumeration)", describes how a client device can learn a recommended
    default registration domain from the network.
 
    In the remainder of this document, Section 3 covers cleanup of stale
@@ -174,7 +174,7 @@ Internet-Draft        Service Registration Protocol            July 2017
 
    The traditional DNS Update mechanisms [RFC2136] [RFC3007] implicitly
    assume they are being used by a human operator.  If a human operator
-   uses DNS Update (perhaps via the ‘nsupdate’ command) to create a
+   uses DNS Update (perhaps via the 'nsupdate' command) to create a
    record, then that record should stay created until the human operator
    decides to remove it.
 
@@ -252,8 +252,8 @@ Internet-Draft        Service Registration Protocol            July 2017
    server receives a TCP SYN or UDP packet addressed to one of the IPv4
    or IPv6 addresses for which it proxying, it should then wake up the
    sleeping device using the information in the EDNS(0) OWNER Option.
-   At present version 0 of the OWNER Option specifies the “Wake-on-LAN
-   Magic Packet” that needs to be sent; future versions could be
+   At present version 0 of the OWNER Option specifies the "Wake-on-LAN
+   Magic Packet" that needs to be sent; future versions could be
    extended to specify other wakeup mechanisms.
 
 
@@ -291,7 +291,7 @@ Internet-Draft        Service Registration Protocol            July 2017
    Users have shown limited willingness to endure complicated
    configuration for their networked home devices.  It is rare for home
    users to change even the factory-default name for their wireless
-   printer, so it’s questionable whether it’s reasonable to expect them
+   printer, so it's questionable whether it's reasonable to expect them
    to configure passwords or security keys.
 
    This document presents a zero-configuration first-come first-served
@@ -423,11 +423,11 @@ Internet-Draft        Service Registration Protocol            July 2017
               <http://www.rfc-editor.org/info/rfc6762>.
 
    [DisProx]  Cheshire, S., "Discovery Proxy for Multicast DNS-Based
-              Service Discovery", draft-ietf-dnssd-hybrid-07 (work in
-              progress), July 2017.
+              Service Discovery", draft-ietf-dnssd-hybrid-06 (work in
+              progress), March 2017.
 
    [DNS-UL]   Sekar, K., "Dynamic DNS Update Leases", draft-sekar-dns-
-              ul-02 (work in progress), July 2017.
+              ul-01 (work in progress), August 2006.
 
    [Roadmap]  Cheshire, S., "Service Discovery Road Map", draft-
               cheshire-dnssd-roadmap-00 (work in progress), July 2017.
