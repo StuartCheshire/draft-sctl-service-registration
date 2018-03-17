@@ -5,12 +5,12 @@
 Internet Engineering Task Force                              S. Cheshire
 Internet-Draft                                                Apple Inc.
 Intended status: Informational                                  T. Lemon
-Expires: January 3, 2018                                   Nominum, Inc.
-                                                            July 2, 2017
+Expires: September 19, 2018                                Nominum, Inc.
+                                                          March 18, 2018
 
 
      Service Registration Protocol for DNS-Based Service Discovery
-                   draft-sctl-service-registration-00
+                   draft-sctl-service-registration-01
 
 Abstract
 
@@ -32,30 +32,30 @@ Status of This Memo
    Internet-Drafts are working documents of the Internet Engineering
    Task Force (IETF).  Note that other groups may also distribute
    working documents as Internet-Drafts.  The list of current Internet-
-   Drafts is at http://datatracker.ietf.org/drafts/current/.
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
 
    Internet-Drafts are draft documents valid for a maximum of six months
    and may be updated, replaced, or obsoleted by other documents at any
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on January 3, 2018.
+   This Internet-Draft will expire on September 19, 2018.
 
 Copyright Notice
 
-   Copyright (c) 2017 IETF Trust and the persons identified as the
+   Copyright (c) 2018 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
 
    This document is subject to BCP 78 and the IETF Trust's Legal
    Provisions Relating to IETF Documents
-   (http://trustee.ietf.org/license-info) in effect on the date of
+   (https://trustee.ietf.org/license-info) in effect on the date of
    publication of this document.  Please review these documents
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 1]
+Cheshire & Lemon       Expires September 19, 2018               [Page 1]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
    carefully, as they describe your rights and restrictions with respect
@@ -109,9 +109,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 2]
+Cheshire & Lemon       Expires September 19, 2018               [Page 2]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
 2.  Service Registration Protocol
@@ -165,9 +165,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 3]
+Cheshire & Lemon       Expires September 19, 2018               [Page 3]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
 3.  Cleanup of Stale Data
@@ -221,9 +221,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 4]
+Cheshire & Lemon       Expires September 19, 2018               [Page 4]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
 4.  Sleep Proxy
@@ -277,9 +277,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 5]
+Cheshire & Lemon       Expires September 19, 2018               [Page 5]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
 5.  First-Come First-Served Naming
@@ -333,9 +333,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 6]
+Cheshire & Lemon       Expires September 19, 2018               [Page 6]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
    using the SIG(0) key with the same DNS resource record owner name
@@ -389,9 +389,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 7]
+Cheshire & Lemon       Expires September 19, 2018               [Page 7]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
 7.  References
@@ -400,27 +400,27 @@ Internet-Draft        Service Registration Protocol            July 2017
 
    [RFC6763]  Cheshire, S. and M. Krochmal, "DNS-Based Service
               Discovery", RFC 6763, DOI 10.17487/RFC6763, February 2013,
-              <http://www.rfc-editor.org/info/rfc6763>.
+              <https://www.rfc-editor.org/info/rfc6763>.
 
 7.2.  Informative References
 
    [RFC2136]  Vixie, P., Ed., Thomson, S., Rekhter, Y., and J. Bound,
               "Dynamic Updates in the Domain Name System (DNS UPDATE)",
               RFC 2136, DOI 10.17487/RFC2136, April 1997,
-              <http://www.rfc-editor.org/info/rfc2136>.
+              <https://www.rfc-editor.org/info/rfc2136>.
 
    [RFC3007]  Wellington, B., "Secure Domain Name System (DNS) Dynamic
               Update", RFC 3007, DOI 10.17487/RFC3007, November 2000,
-              <http://www.rfc-editor.org/info/rfc3007>.
+              <https://www.rfc-editor.org/info/rfc3007>.
 
    [RFC6760]  Cheshire, S. and M. Krochmal, "Requirements for a Protocol
               to Replace the AppleTalk Name Binding Protocol (NBP)",
               RFC 6760, DOI 10.17487/RFC6760, February 2013,
-              <http://www.rfc-editor.org/info/rfc6760>.
+              <https://www.rfc-editor.org/info/rfc6760>.
 
    [RFC6762]  Cheshire, S. and M. Krochmal, "Multicast DNS", RFC 6762,
               DOI 10.17487/RFC6762, February 2013,
-              <http://www.rfc-editor.org/info/rfc6762>.
+              <https://www.rfc-editor.org/info/rfc6762>.
 
    [DisProx]  Cheshire, S., "Discovery Proxy for Multicast DNS-Based
               Service Discovery", draft-ietf-dnssd-hybrid-06 (work in
@@ -445,9 +445,9 @@ Internet-Draft        Service Registration Protocol            July 2017
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 8]
+Cheshire & Lemon       Expires September 19, 2018               [Page 8]
 
-Internet-Draft        Service Registration Protocol            July 2017
+Internet-Draft        Service Registration Protocol           March 2018
 
 
 Authors' Addresses
@@ -501,4 +501,4 @@ Authors' Addresses
 
 
 
-Cheshire & Lemon         Expires January 3, 2018                [Page 9]
+Cheshire & Lemon       Expires September 19, 2018               [Page 9]
