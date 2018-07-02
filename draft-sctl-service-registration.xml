@@ -59,17 +59,16 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     </author>
 
     <author initials="T" surname="Lemon" fullname="Ted Lemon">
-      <organization>Nominum, Inc.</organization>
+      <organization>Nibbhaya Consulting</organization>
       <address>
         <postal>
-          <street>800 Bridge Parkway</street>
-          <city>Redwood City</city>
-          <region>California</region>
+          <street>P.O. Box 958</street>
+          <city>Brattleboro</city>
+          <region>Vermont</region>
           <country>United States of America</country>
-          <code>94065</code>
+          <code>05302</code>
         </postal>
-        <phone>+1 650 381 6000</phone>
-        <email>ted.lemon@nominum.com</email>
+        <email>mellon@fugue.com</email>
       </address>
     </author>
 

@@ -5,7 +5,7 @@
 Internet Engineering Task Force                              S. Cheshire
 Internet-Draft                                                Apple Inc.
 Intended status: Informational                                  T. Lemon
-Expires: January 3, 2019                                   Nominum, Inc.
+Expires: January 3, 2019                             Nibbhaya Consulting
                                                             July 2, 2018
 
 
@@ -532,13 +532,13 @@ Authors' Addresses
 
 
    Ted Lemon
-   Nominum, Inc.
-   800 Bridge Parkway
-   Redwood City, California  94065
+   Nibbhaya Consulting
+   P.O. Box 958
+   Brattleboro, Vermont  05302
    United States of America
 
-   Phone: +1 650 381 6000
-   Email: ted.lemon@nominum.com
+   Email: mellon@fugue.com
+
 
 
 
