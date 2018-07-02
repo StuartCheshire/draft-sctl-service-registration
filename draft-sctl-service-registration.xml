@@ -39,7 +39,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 <?rfc rfcprocack="yes" ?>
 <!-- end of list of popular I-D processing instructions -->
 
-<rfc category="info" docName="draft-sctl-service-registration-02" ipr="trust200902">
+<rfc category="info" docName="draft-sctl-service-registration-01" ipr="trust200902">
 
   <front>
     <title abbrev='Service Registration Protocol'>Service Registration Protocol for DNS-Based Service Discovery</title>

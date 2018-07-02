@@ -10,7 +10,7 @@ Expires: January 3, 2019                                   Nominum, Inc.
 
 
      Service Registration Protocol for DNS-Based Service Discovery
-                   draft-sctl-service-registration-02
+                   draft-sctl-service-registration-01
 
 Abstract
 
