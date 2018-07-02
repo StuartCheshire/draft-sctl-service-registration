@@ -39,7 +39,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 <?rfc rfcprocack="yes" ?>
 <!-- end of list of popular I-D processing instructions -->
 
-<rfc category="info" docName="draft-sctl-service-registration-01" ipr="trust200902">
+<rfc category="info" docName="draft-sctl-service-registration-02" ipr="trust200902">
 
   <front>
     <title abbrev='Service Registration Protocol'>Service Registration Protocol for DNS-Based Service Discovery</title>
@@ -73,26 +73,24 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       </address>
     </author>
 
-    <date year='2018' month='March' day='18'/>
+    <date year='2018' month='July' day='2'/>
     <area>Internet</area>
     <workgroup>Internet Engineering Task Force</workgroup>
     <keyword>Multicast DNS</keyword>
     <keyword>DNS-Based Service Discovery</keyword>
+    <keyword>DNS Update</keyword>
+    <keyword>SIG(0)</keyword>
     <keyword>RFC</keyword>
     <keyword>Request for Comments</keyword>
     <keyword>I-D</keyword>
     <keyword>Internet-Draft</keyword>
     <abstract>
-      <t>The DNS-SD Service Registration Protocol provides a way to
-      perform DNS-Based Service Discovery using only unicast packets.
-      This eliminates the dependency on Multicast DNS as the foundation layer,
-      which has worked well in some environments, like the simplest of home networks,
-      but not in others, like large enterprise networks
-      (where multicast does not scale well to thousands of devices)
-      and mesh networks
-      (where multicast and broadcast are supported poorly, if at all).
-      Broadly speaking, the DNS-SD Service Registration Protocol is
-      DNS Update, with a few additions.
+      <t>The DNS-SD Service Registration Protocol uses the standard DNS Update mechanism to
+      enable DNS-Based Service Discovery using only unicast packets.  This eliminates the
+      dependency on Multicast DNS as the foundation layer, which greatly improves scalability
+      and improves performance on networks where multicast service is not an optimal choice,
+      particularly 802.11 (WiFi) and 802.15 (IoT) networks.   DNS-SD Service registration uses
+      public keys and SIG(0) to allow services to defend their registrations against attack.
       </t>
     </abstract>
   </front>
@@ -102,225 +100,299 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     <section title="Introduction">
       <t><xref target="RFC6763">DNS-Based Service Discovery</xref>
       is a component of Zero Configuration Networking
-      <xref target="RFC6760"/> <xref target="ZC"/> <xref target="Roadmap"/>.</t>
+      <xref target="RFC6760"/> <xref target="ZC"/> <xref target="I-D.cheshire-dnssd-roadmap"/>.</t>
 
-      <t>There are two facets of DNS-Based Service Discovery to consider:<vspace />
-      how relevant information makes its way into the DNS namespace<vspace />
-      (how a server offers its services to interested clients)
-      and how clients access that information
-      (how an interested client discovers and uses a service instance).
-      </t>
+      <t>DNS-Based Service Discovery (DNS-SD) allows services to advertise the fact that they
+      provide service, and to provide the information required to access that service.  Clients
+      can then discover the set of services of a particular type that are available.  They can
+      then select a service from among those that are available and obtain the information
+      required to use it.</t>
 
-      <t>This document is concerned with the first of those two facets:<vspace />
-      how relevant information makes its way into the DNS namespace.</t>
+      <t>The DNS-SD Service Registration protocol, described in this document, provides a
+      reasonably secure mechanism for publishing this information: what services are offered,
+      and how to use them.  Once published, these services can be readily discovered by clients
+      using standard DNS lookups.</t>
 
-      <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref>
-      Section 10 “Populating the DNS with Information” briefly discusses
-      ways that relevant information can make its way into the DNS namespace.
-      In the case of <xref target="RFC6762">Multicast DNS</xref>, the relevant information
-      trivially becomes visible in the “.local” namespace by virtue of devices answering for themselves.
-      For unicast DNS names, ways that information makes its way into the DNS namespace
-      include manual configuration of DNS zone files,
-      possibly assisted using tools such as the “dns-sd -Z” command,
-      automated tools such as a <xref target="DisProx">Discovery Proxy</xref>,
-      or explicit registration by the services themselves.
-      It is the last option -- explicit registration by the services themselves --
-      that is the subject of this document.</t>
+      <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref> Section
+      10 “Populating the DNS with Information” briefly discusses ways that services can publish
+      their information in the DNS namespace.  In the case of <xref target="RFC6762">Multicast
+      DNS</xref>, allows clients to directly query services on the local link for names in the
+      ".local" namespace.</t>
 
+      <t>RFC6763 also allows clients to discover services using <xref target="RFC1035">the DNS
+      protocol</xref>; this is done either by having a system administrator manually configure
+      service information in the DNS, or by using a <xref target="I-D.ietf-dnssd-hybrid">Discovery
+      Proxy</xref>, which performs mDNS queries on behalf clients issuing queries using DNS.
+      This eliminats the "link local" limitation of mDNS, but provides no additional security,
+      and still relies on multicast.</t>
+
+      <t>Manual configuration of DNS servers is costly and failure-prone, and requires a knowledgable
+      network administrator.   Consequently, although all DNS-SD implementations of which we are
+      aware support it, it is much less frequently used than mDNS.   This document describes a
+      solution: a way to provide DNS-SD using DNS that can be as automatic as multicast DNS,
+      but with better performance, scalability and security.</t>
     <?rfc needLines="20" ?>
     </section>
 
     <section title="Service Registration Protocol">
 
-      <t>The DNS-SD Service Registration Protocol is largely built on
-      DNS Update <xref target="RFC2136"/> <xref target="RFC3007"/>,
-      with some additions.</t>
+      <t>Services using the DNS-SD Service Registration Protocol use DNS Update <xref
+      target="RFC2136"/> <xref target="RFC3007"/> to publish service information in the DNS.  We
+      will discuss several parts to this process: how to know what to publish, how to know where
+      to publish it (under what name), how to publish it, how to secure its publication, and how
+      to maintain the information once published.</t>
 
-      <t>When a device advertises services using Multicast DNS,
-      the parent domain is implicitly “.local”.</t>
+      <section title="What to publish">
+	<t>RFC 6763 describes the details of what is to be published.  In general terms, a
+	service will have a name under which it offers services (<xref target="RFC6763"/>
+	section 4.1.1) and one or more service names under which that instance name appears
+	(<xref target="RFC6763"/> section 4.1.2).  The full details of how this works are
+	described in section 4 of that document in its entirety.   A service publishes its
+	contact information using an SRV record on the Service Instance Name.   It can also
+	publish TXT records with additional information about the service; this is discussed
+	in section 6 of RFC 6763.</t>
+	<t>RFC 6763 is the definitive source for information about what to publish; the reason
+	for mentioning it here is that the reader may prefer to have an overview of the whole
+	service registration process before digging into the details.  Also, the "Service
+	Instance Name" is an important aspect of first-come, first-serve naming, which we
+	describe later on in this document.</t>
+      </section>
 
-      <t>When a device advertises services in the traditional unicast DNS namespace,
-      it needs to know the parent domain name for its services.
-      This parent domain can be manually configured by a human operator,
-      or learned from the network.
-      In the <xref target="RFC6763">DNS-SD specification</xref> section 11,
-      “Discovery of Browsing and Registration Domains (Domain Enumeration)”,
-      describes how a client device can learn a recommended default
-      registration domain from the network.</t>
+      <section title="Where to publish it">
+	<t>Multicast DNS uses a single namespace, ".local", which is valid on the local link.
+	This convenience is not available for DNS-SD using the DNS protocol: the portion of the
+	DNS namespace in which services on the local network are to be published must be discovered
+	by the service before it can register itself.</t>
 
-      <t>In the remainder of this document,
-      <xref target="cleanup"/> covers cleanup of stale data, and
-      <xref target="sleep"/> covers advertising services on behalf of devices
-      that are sleeping to reduce power consumption.</t>
+	<t>Names published using DNS-SD service registration will be published under some name
+	other than .local.  However, the process of discovering what that name is is
+	complicated, and for any given network it should always be the case that there will be
+	just one namespace in which registered names will be published.  Rather than requiring
+	the service to discover this name before issuing a registration, the service SHOULD
+	simply use the name ".local."  The DNS server that receives the registration request
+	will rewrite all instances of the terminal label ".local" to use the local registration
+	domain name.  The response to the DNS Update being used to register the service will
+	contain the rewritten names, instead of ".local".  Subsequent updates should still use
+	the ".local" domain and not the registration domain, since the registration domain may
+	change over time or when the service is physically moved to a new network.</t>
+      </section>
+      <section title="How to publish it">
+	<t>DNS Updates are very flexible.  As a consequence, it is possible to do the entire
+	registration in a single DNS message.  The update consists of two elements.  The first
+	updates the Service Name by adding a PTR record pointing to the Service Instance Name.
+	The second updates the Service Instance Name.  The second creates or updates the Service
+	Instance Name update adds an SRV record and a KEY record, and optionally adds a TXT
+	record with extra information about the service.  The contents of the KEY record are
+	described in the section on <xref target="fcfs">First-Come First-Served Naming</xref>.
+	The update is signed using the private key that corresponds to the public key in the KEY
+	record, using the <xref target="RFC2931">SIG(0) protocol</xref>.</t>
+	<t>The update may be rejected.  If the chosen service instance name is not permitted,
+	or is already taken, the update will be returned with the error code YXDOMAIN.  In this
+	case, the service will need to choose a new instance name and try again.</t>
+      </section>
+      <section title="How to secure it">
+	<t>Traditional DNS update is secured using the TSIG protocol, which uses a secret key
+	shared between the client (which issues the update) and the server (which authenticates
+	it).  This model does not work for automatic service registration.</t>
 
-      <t>The final question is security.
-      Most dynamic DNS servers will not accept unauthenticated updates.
-      In the case of manual configuration of registration domain by a human operator,
-      the human operator can also configure an appropriate TSIG security key.
-      In the case of automatic configuration via DNS-SD Domain Enumeration queries,
-      it would be nice to also have zero-configuration security.
-      While at first glance zero-configuration security may seem to be a self-contradiction,
-      this document proposes a simple first-come first-served security mechanism,
-      described below in <xref target="fcfs"/>.</t>
+	<t>The goal of securing the DNS-SD Registration Protocol is to provide the best possible
+	security given the constraint that service registration has to be automatic.  It is
+	possible to layer more operational security on top of what we describe here, but what we
+	describe here improves upon the security of mDNS.  The goal is not to provide the level
+	of security of a network managed by a skilled operator.</t>
 
-    <?rfc needLines="20" ?>
+	<section anchor="fcfs" title="First-Come First-Served Naming">
+	  <t>First-Come First-Serve naming provides a limited degree of security: a service that
+	  registers its service using DNS-SD Registration protocol is given ownership of a name
+	  for an extended period of time based on the key used to authenticate the DNS Update.
+	  As long as the registration service remembers the Service Instance Name and the key used
+	  to register that Service Instance Name, no other service can add or update the information
+	  associated with that Service Instance Name.</t>
+	  <section title="Service Behavior">
+	    <t>The service generates a public/private key pair.   This key pair MUST be stored
+	    in stable storage; if there is no writable stable storage on the client, the client
+	    MUST be pre-configured with a public/private key pair that can be used.</t>
+	    <t>When sending DNS updates, the service includes a KEY record containing the
+	    public portion of the key, which is stored as an RRset under the Service Instance Name.
+	    It is permissible for a device that offers more than one service under more than one
+	    Service Instance Name to use the same KEY on each such name.</t>
+	    <t>The update is signed using SIG(0), using the private key that corresponds to the
+	    public key in the KEY record.</t>
+
+	    <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV and TXT records</xref>
+	    is typically set to two hours.
+	    This means that if a device is disconnected from the network, it does not appear in
+	    the user interfaces of devices looking for services of that type for too long.</t>
+
+	    <t>However, the lifetime of its DNS SIG(0) public key should be set
+	    to a much longer time, typically 14 days.
+	    The result of this is that even though a device may be temporarily unplugged,
+	    disappearing from the network for a few days,
+	    it makes a claim on its name that lasts much longer.</t>
+
+	    <t>This way, even if a device is unplugged from the network for a few days,
+	    and its services are not available for that time, no other rogue device
+	    can come along and immediately claim its name the moment it disappears
+	    from the network, and yet the name is eventually cleaned up and made available for
+	    re-use.</t>
+	  </section>
+	  <section title="Registration Server Behavior">
+	    <t>The Registration server checks that the DNS update contains a Service Instance
+	    Name.  In principle, each name in the update should be evaluated as a candidate
+	    Service Instance Name.   However, some names will obviously be Service Names, and
+	    these can be skipped when evaluating candidates.   In order for a candidate to actually
+	    be a service instance name, the following conditions must be true:
+	    <list style="symbols">
+	      <t>There is at least one name that turns out NOT to be a Service Instance Name for
+	      which there is a PTR RRset update that includes a record pointing to the
+	      candidate.</t>
+	      <t>The candidate includes an SRV record</t>
+	      <t>The candidate includes a KEY record</t>
+	    </list></t>
+	    <t>If an update does not contain a valid Service Instance Name, or if it contains an
+	    update to a PTR RRset that references a name that is not the Service Instance Name
+	    being updated, the update is rejected with the NOTAUTH RCODE.</t>
+
+	    <t>If an update contains an SRV record that contains an IP address other than the IP
+	    address from which the update was recieved, the update is rejected with the NOTAUTH
+	    RCODE.</t>
+
+	    <t>Once each name for which there are updates in the DNS Update has been considered
+	    as a candidate, it should be the case that only one name is actually a possible
+	    Service Instance Name.   If more than one name is still a possible candidate, then
+	    the DNS Update is rejected with the FORMERR RCODE.</t>
+
+	    <t>If there is only one candidate, then the server checks to see if that name already
+	    exists.   If it does already exist, then the server checks to see if the KEY record
+	    on the name is the same as the one in the update for that name.   If it is not, then
+	    the DNS Update is rejected with the YXDOMAIN RCODE.</t>
+
+	    <t>Otherwise, the server validates the update using SIG(0).  If the validation fails,
+	    the update is rejected with NOTAUTH.   Otherwise, the update is evaluated according to
+	    the rules described in RFC2136 for processing DNS updates, and whatever the correct
+	    result is is returned.</t>
+
+	    <t>The server MAY apply additional criteria when accepting updates.   In some networks,
+	    it may be possible to do out-of-band registration of keys, and only accept updates
+	    from pre-registered keys.  In this case, an update for a key that has not been registered
+	    should be rejected using NOTAUTH.</t>
+
+	    <t>There are at least two benefits to doing this rather than simply using normal
+	    SIG(0) DNS updates.  First, the same registration protocol can be used in both
+	    cases, so both use cases can be addressed by the same implementation.  Second, the
+	    registration protocol includes maintenance functionality not present with normal DNS
+	    updates.</t>
+
+	    <t>The server may also have a dictionary of names or name patterns that are not
+	    permitted.   If such a list is used, updates for Service Instance Names that match
+	    entries in the dictionary are rejected with YXDOMAIN.</t>
+	  </section>
+	</section>
+      </section>
+
+      <section title="Maintenance">
+	<section title="Cleaning up stale data">
+	  <t>Because the DNS-SD registration protocol is automatic, and not managed by humans,
+	  some additional bookkeeping is required.  When an update is constructed by the client,
+	  it MUST include include an EDNS(0) Update Lease option and an EDNS(0) Instance Lease
+	  option.</t>
+
+	  <t>These leases are promises, similar to <xref target="RFC2131">DHCP leases</xref>,
+	  from the client that it will send a new update for the service registration before the
+	  lease time expires.  The Update Lease time is chosen to represent the time after the
+	  update during which the registered records other than the KEY record should be assumed
+	  to be valid.  The Instance Lease time represents the time after the update during
+	  which the KEY record should be assumed to be valid.</t>
+
+	  <t>The reasoning behind the different lease times is discussed in the section on first-come,
+	  first-served naming <xref target="fcfs"/>.   DNS-SD Registration Protocol servers may be configured
+	  with limits for these values.   A default limit of two hours for the Update Lease and 30 days for the
+	  Instance Lease are currently thought to be good choices.   Clients that are going to continue to use
+	  names on which they hold leases should update well before the lease ends, in case the registration
+	  service is unavailable or under heavy load.</t>
+
+	  <t>Clients should assume that each lease ends N seconds after the update was first transmitted, where
+	  N is the number included in the option.   Servers should assume that each lease ends N seconds after
+	  the update that was successfully processed was received.  Because the server will always receive the
+	  update after the client sent it, this avoids the possibility of misunderstandings.</t>
+
+	  <t>DNS-SD Registration Protocol servers SHOULD reject updates that do not include a DNS update lease
+	  time.   Dual-use servers may accept updates that don't include leases, but SHOULD differentiate between
+	  DNS-SD registration protocol updates and other updates, and SHOULD reject updates that are known to
+	  be DNS-SD registration protocol updates if they do not include leases.</t>
+	</section>
+	<section title="Sleep Proxy">
+	  <t>Another use of Service Registration Protocol is for devices
+	  that sleep to reduce power consumption.</t>
+
+	  <t>In this case, in addition to the
+	  <xref target="I-D.sekar-dns-ul">DNS Update Lease option</xref>
+	  described above, the device includes an
+	  <xref target="I-D.cheshire-edns0-owner-option">EDNS(0) OWNER Option</xref>.</t>
+
+	  <t>The DNS Update Lease option constitutes a promise by the device
+	  that it will wake up before this time elapses, to renew its records
+	  and thereby demonstrate that it is still attached to the network.
+	  If it fails to renew the records by this time, that indicates that it is
+	  no longer attached to the network, and its records should be deleted.</t>
+
+	  <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
+	  and will not be receptive to normal network traffic.
+	  When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
+	  that signifies that the DNS server should act as a proxy for any
+	  IPv4 or IPv6 address records in the DNS Update message.
+	  This means that the DNS server should send ARP or ND messages claiming
+	  ownership of the IPv4 and/or IPv6 addresses in the records in question.
+	  In addition, the DNS server should answer future ARP or ND requests
+	  for those IPv4 and/or IPv6 addresses, claiming ownership of them.
+	  When the DNS server receives a TCP SYN or UDP packet addressed to
+	  one of the IPv4 or IPv6 addresses for which it proxying, it should
+	  then wake up the sleeping device using the information in the
+	  EDNS(0) OWNER Option. At present version 0 of the OWNER Option
+	  specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
+	  future versions could be extended to specify other wakeup mechanisms.</t>
+	</section>
+      </section>
     </section>
 
-    <section anchor="cleanup" title="Cleanup of Stale Data">
-
-      <t>The traditional DNS Update mechanisms
-      <xref target="RFC2136"/> <xref target="RFC3007"/>
-      implicitly assume they are being used by a human operator.
-      If a human operator uses DNS Update (perhaps via the ‘nsupdate’ command)
-      to create a record, then that record should stay created until the
-      human operator decides to remove it.</t>
-
-      <t>The same assumptions do not apply to machine-generated records.
-      If a mobile device creates one or more records using DNS Update,
-      and later unceremoniously departs the network,
-      then those stale records should eventually be removed.</t>
-
-      <t>The mechanism proposed here is modeled on DHCP.
-      Just like a DHCP address lease,
-      a record created using DNS Update has a lifetime.
-      If the record is not refreshed before its lifetime expires,
-      then the record is deleted.</t>
-
-      <t>When a client performs a DNS Update, it includes a
-      <xref target="DNS-UL">EDNS(0) Update Lease option</xref>.
-      The DNS Update Lease option indicates the requested lifetime of the
-      records created or updated in the associated DNS Update message.
-      In the DNS Update reply, the server returns its own EDNS(0) Update
-      Lease option indicating the granted lifetime, which may be
-      shorter, the same, or longer than the client requested. If the
-      records are not refreshed before the granted lifetime expires,
-      then the records are deleted.</t>
-
-      <t>DNS servers may be configured to refuse DNS Updates
-      that do not include a DNS Update Lease option.</t>
-
-    <?rfc needLines="25" ?>
-    </section>
-
-    <section anchor="sleep" title="Sleep Proxy">
-
-      <t>Another use of Service Registration Protocol is for devices
-      that sleep to reduce power consumption.</t>
-
-      <t>In this case, in addition to the
-      <xref target="DNS-UL">DNS Update Lease option</xref>
-      described above, the device includes an
-      <xref target="Owner">EDNS(0) OWNER Option</xref>.</t>
-
-      <t>The DNS Update Lease option constitutes a promise by the device
-      that it will wake up before this time elapses, to renew its records
-      and thereby demonstrate that it is still attached to the network.
-      If it fails to renew the records by this time, that indicates that it is
-      no longer attached to the network, and its records should be deleted.</t>
-
-      <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
-      and will not be receptive to normal network traffic.
-      When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
-      that signifies that the DNS server should act as a proxy for any
-      IPv4 or IPv6 address records in the DNS Update message.
-      This means that the DNS server should send ARP or ND messages claiming
-      ownership of the IPv4 and/or IPv6 addresses in the records in question.
-      In addition, the DNS server should answer future ARP or ND requests
-      for those IPv4 and/or IPv6 addresses, claiming ownership of them.
-      When the DNS server receives a TCP SYN or UDP packet addressed to
-      one of the IPv4 or IPv6 addresses for which it proxying, it should
-      then wake up the sleeping device using the information in the
-      EDNS(0) OWNER Option. At present version 0 of the OWNER Option
-      specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
-      future versions could be extended to specify other wakeup mechanisms.</t>
-
-    <?rfc needLines="25" ?>
-    </section>
-
-    <section anchor="fcfs" title="First-Come First-Served Naming">
-
-      <t>In some environments, such as home networks with an appropriate border gateway,
-      it may be preferable to have some limited security on the protected internal network
-      rather than no security at all.</t>
-
-      <t>Users have shown limited willingness to endure complicated
-      configuration for their networked home devices.
-      It is rare for home users to change even the factory-default name for
-      their wireless printer, so it’s questionable whether it’s reasonable
-      to expect them to configure passwords or security keys.</t>
-
-      <t>This document presents a zero-configuration first-come
-      first-served naming mechanism.</t>
-
-      <t>Instead of requiring a preconfigured key installed by manual administration,
-      a new device optimistically creates its DNS Service Discovery records,
-      plus a DNS SIG(0) public key,
-      using a DNS Update signed with its DNS SIG(0) private key.</t>
-
-      <t>The DNS server validates the signature on the message using the
-      SIG(0) key already stored on the name, if present, and otherwise
-      with the key sent in the update, if the requested name is not yet present.
-      The server may check that the two public keys are the
-      same before validating, and refuse the update if they are not,
-      to avoid the cost of verifying the signature.</t>
-
-      <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV and TXT records</xref>
-      is typically set to two hours.
-      That way, if a device is disconnected from the network,
-      its stale data does not persist for too long,
-      advertising a service that is not accessible.</t>
-
-      <t>However, the lifetime of its DNS SIG(0) public key should be set
-      to a much longer time, typically 14 days.
-      The result of this is that even though a device may be temporarily unplugged,
-      disappearing from the network for a few days,
-      it makes a claim on its name that lasts much longer.</t>
-
-      <t>This way, even if a device is unplugged from the network for a few days,
-      and its services are not available for that time, no other rogue device
-      can come along and immediately claim its name the moment it disappears
-      from the network.
-      It takes a much longer time before an abandoned
-      name becomes available for re-use.</t>
-
-      <t>When using this first-come first-served security mechanism, the server
-      accepting or rejecting the updates utilizes knowledge of the
-      <xref target="RFC6763">DNS-Based Service Discovery semantics</xref>.
-      Specifically, for all records aside from PTR records, the update must be validly
-      signed using the SIG(0) key with the same DNS resource record owner name
-      (the name on the left in a traditional textual zone file).
-      For additions or deletions of PTR records, the update must be validly
-      signed using the SIG(0) key with the same DNS resource record owner name
-      as the rdata in the PTR record
-      (the name on the right in a traditional textual zone file).</t>
-
-    <?rfc needLines="25" ?>
-    </section>
 
     <section title="Security Considerations">
-      <t>To be completed.</t>
+      <t>DNS-SD Service Registration Protocol updates have no authorization semantics other than
+      first-come, first-served.   This means that if an attacker from outside of the administrative
+      domain of the server knows the server's IP address, it can in principle send updates to the server
+      that will be processed successfully.   Servers should therefore be configured to reject updates
+      from source addresses outside of the administrative domain of the server.</t>
 
-    <?rfc needLines="45" ?>
+      <t>Note that these rules only apply to the validation of DNS-SD registration
+      protocol updates.   A server that accepts updates from DNS-SD registration protocol
+      clients may also accept other DNS updates, and those DNS updates may be validated
+      using different rules.   However, in the case of a DNS service that accepts automatic
+      updates, the intersection of the DNS-SD service registration update rules and
+      whatever other update rules are present must be considered very carefully.</t>
+
     </section>
-
+    <section title="Privacy Considerations">
+    </section>
   </middle>
 
   <back>
-    <!-- <displayreference target="I-D.ietf-dnssd-hybrid" to="DisProx"/> appears to not work in xml2rfc 2.6.2 -->
+    <!-- <displayreference target="I-D.ietf-dnssd-hybrid" to="I-D.ietf-dnssd-hybrid"/> appears to not work in xml2rfc 2.6.2 -->
     <references title="Normative References">
-      <?rfc include="reference.RFC.6763" ?>
+      <?rfc include="reference.RFC.6763" anchor="RFC6763" ?>
     </references>
 
     <references title="Informative References">
-
+      <?rfc include="reference.RFC.1035" ?>
+      <?rfc include="reference.RFC.2131" ?>
       <?rfc include="reference.RFC.2136" ?>
+      <?rfc include="reference.RFC.2931" ?>
       <?rfc include="reference.RFC.3007" ?>
       <?rfc include="reference.RFC.6760" ?>
       <?rfc include="reference.RFC.6762" ?>
-      <?rfc include="reference.I-D.ietf-dnssd-hybrid"           anchor='DisProx' ?>
-      <?rfc include="reference.I-D.sekar-dns-ul"                anchor='DNS-UL'  ?>
-      <?rfc include="reference.I-D.cheshire-dnssd-roadmap"      anchor='Roadmap' ?>
-      <?rfc include="reference.I-D.cheshire-edns0-owner-option" anchor='Owner'   ?>
+      <?rfc include="reference.I-D.ietf-dnssd-hybrid"?>
+      <?rfc include="reference.I-D.sekar-dns-ul" ?>
+      <?rfc include="reference.I-D.cheshire-dnssd-roadmap" ?>
+      <?rfc include="reference.I-D.cheshire-edns0-owner-option" ?>
 
       <reference anchor="ZC">
         <front>
