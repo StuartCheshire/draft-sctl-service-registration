@@ -444,6 +444,10 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  is processed according to the method described in RFC2136.  The status that is
 	  returned depends on the result of processing the update.</t>
 
+	  <t>The server MAY add a Reverse Mapping that corresponds to the Forward Mapping.
+	  This is not required because the Reverse Mapping serves no protocol function, but
+	  it may be useful for debugging, e.g. in annotating network packet traces or logs.</t>
+
 	  <t>The server MAY apply additional criteria when accepting updates.   In some networks,
 	  it may be possible to do out-of-band registration of keys, and only accept updates
 	  from pre-registered keys.  In this case, an update for a key that has not been registered
