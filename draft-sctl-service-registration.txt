@@ -420,8 +420,8 @@ Internet-Draft        Service Registration Protocol            July 2018
 2.4.2.  Registration Server Behavior
 
    The Registration server checks each update in the Registration to see
-   that it is either a a Service Discovery update, a Service Description
-   update, or a Host Description update.
+   that it contains a Service Discovery update, a Service Description
+   update, and a Host Description update.
 
    An update is a Service Discovery update if it contains
 
@@ -490,14 +490,14 @@ Internet-Draft        Service Registration Protocol            July 2018
    according to the method described in RFC2136.  The status that is
    returned depends on the result of processing the update.
 
+   The server MAY add a Reverse Mapping that corresponds to the Host
+   Description.  This is not required because the Reverse Mapping serves
+   no protocol function, but it may be useful for debugging, e.g. in
+   annotating network packet traces or logs.
+
    The server MAY apply additional criteria when accepting updates.  In
    some networks, it may be possible to do out-of-band registration of
    keys, and only accept updates from pre-registered keys.  In this
-   case, an update for a key that has not been registered should be
-   rejected with the REFUSED RCODE.
-
-   There are at least two benefits to doing this rather than simply
-   using normal SIG(0) DNS updates.  First, the same registration
 
 
 
@@ -506,6 +506,11 @@ Cheshire & Lemon        Expires January 15, 2019                [Page 9]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+   case, an update for a key that has not been registered should be
+   rejected with the REFUSED RCODE.
+
+   There are at least two benefits to doing this rather than simply
+   using normal SIG(0) DNS updates.  First, the same registration
    protocol can be used in both cases, so both use cases can be
    addressed by the same service implementation.  Second, the
    registration protocol includes maintenance functionality not present
@@ -523,7 +528,7 @@ Internet-Draft        Service Registration Protocol            July 2018
    Because the DNS-SD registration protocol is automatic, and not
    managed by humans, some additional bookkeeping is required.  When an
    update is constructed by the client, it MUST include include an
-   EDNS(0) Update Lease option and an EDNS(0) Instance Lease option.
+   EDNS(0) Update Lease Option [I-D.sekar-dns-ul].
 
    These leases are promises, similar to DHCP leases [RFC2131], from the
    client that it will send a new update for the service registration
@@ -549,11 +554,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    will always receive the update after the client sent it, this avoids
    the possibility of misunderstandings.
 
-   DNS-SD Registration Protocol servers SHOULD reject updates that do
-   not include a DNS update lease time.  Dual-use servers may accept
-   updates that don't include leases, but SHOULD differentiate between
-   DNS-SD registration protocol updates and other updates, and SHOULD
-
 
 
 
@@ -562,6 +562,10 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 10]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+   DNS-SD Registration Protocol servers SHOULD reject updates that do
+   not include a DNS update lease time.  Dual-use servers may accept
+   updates that don't include leases, but SHOULD differentiate between
+   DNS-SD registration protocol updates and other updates, and SHOULD
    reject updates that are known to be DNS-SD registration protocol
    updates if they do not include leases.
 
@@ -606,10 +610,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    semantics other than first-come, first-served.  This means that if an
    attacker from outside of the administrative domain of the server
    knows the server's IP address, it can in principle send updates to
-   the server that will be processed successfully.  Servers should
-   therefore be configured to reject updates from source addresses
-   outside of the administrative domain of the server.
-
 
 
 
@@ -617,6 +617,10 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 11]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   the server that will be processed successfully.  Servers should
+   therefore be configured to reject updates from source addresses
+   outside of the administrative domain of the server.
 
    Note that these rules only apply to the validation of DNS-SD
    registration protocol updates.  A server that accepts updates from
@@ -652,19 +656,15 @@ Internet-Draft        Service Registration Protocol            July 2018
               Discovery", RFC 6763, DOI 10.17487/RFC6763, February 2013,
               <https://www.rfc-editor.org/info/rfc6763>.
 
+   [I-D.sekar-dns-ul]
+              Sekar, K., "Dynamic DNS Update Leases", draft-sekar-dns-
+              ul-01 (work in progress), August 2006.
+
 6.2.  Informative References
 
    [RFC1034]  Mockapetris, P., "Domain names - concepts and facilities",
               STD 13, RFC 1034, DOI 10.17487/RFC1034, November 1987,
               <https://www.rfc-editor.org/info/rfc1034>.
-
-   [RFC1035]  Mockapetris, P., "Domain names - implementation and
-              specification", STD 13, RFC 1035, DOI 10.17487/RFC1035,
-              November 1987, <https://www.rfc-editor.org/info/rfc1035>.
-
-   [RFC2131]  Droms, R., "Dynamic Host Configuration Protocol",
-              RFC 2131, DOI 10.17487/RFC2131, March 1997,
-              <https://www.rfc-editor.org/info/rfc2131>.
 
 
 
@@ -673,6 +673,14 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 12]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   [RFC1035]  Mockapetris, P., "Domain names - implementation and
+              specification", STD 13, RFC 1035, DOI 10.17487/RFC1035,
+              November 1987, <https://www.rfc-editor.org/info/rfc1035>.
+
+   [RFC2131]  Droms, R., "Dynamic Host Configuration Protocol",
+              RFC 2131, DOI 10.17487/RFC2131, March 1997,
+              <https://www.rfc-editor.org/info/rfc2131>.
 
    [RFC2136]  Vixie, P., Ed., Thomson, S., Rekhter, Y., and J. Bound,
               "Dynamic Updates in the Domain Name System (DNS UPDATE)",
@@ -714,14 +722,6 @@ Internet-Draft        Service Registration Protocol            July 2018
               Service Discovery", draft-ietf-dnssd-hybrid-08 (work in
               progress), March 2018.
 
-   [I-D.ietf-dnssd-push]
-              Pusateri, T. and S. Cheshire, "DNS Push Notifications",
-              draft-ietf-dnssd-push-14 (work in progress), March 2018.
-
-   [I-D.sekar-dns-ul]
-              Sekar, K., "Dynamic DNS Update Leases", draft-sekar-dns-
-              ul-01 (work in progress), August 2006.
-
 
 
 
@@ -729,6 +729,10 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 13]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   [I-D.ietf-dnssd-push]
+              Pusateri, T. and S. Cheshire, "DNS Push Notifications",
+              draft-ietf-dnssd-push-14 (work in progress), March 2018.
 
    [I-D.cheshire-dnssd-roadmap]
               Cheshire, S., "Service Discovery Road Map", draft-
@@ -762,10 +766,6 @@ Authors' Addresses
    United States of America
 
    Email: mellon@fugue.com
-
-
-
-
 
 
 

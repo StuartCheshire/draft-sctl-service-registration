@@ -358,10 +358,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	</section>
 
 	<section anchor="server_behavior" title="Registration Server Behavior">
-	  <t>The Registration server checks each update in the Registration to see that it is
-	  either a
+	  <t>The Registration server checks each update in the Registration to see that it contains
 	  a Service Discovery update,
-	  a Service Description update, or
+	  a Service Description update, and
 	  a Host Description update.</t>
 <?rfc subcompact="yes" ?>
 	  <t>An update is a Service Discovery update if it contains
@@ -418,7 +417,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  is processed according to the method described in RFC2136.  The status that is
 	  returned depends on the result of processing the update.</t>
 
-	  <t>The server MAY add a Reverse Mapping that corresponds to the Forward Mapping.
+	  <t>The server MAY add a Reverse Mapping that corresponds to the Host Description.
 	  This is not required because the Reverse Mapping serves no protocol function, but
 	  it may be useful for debugging, e.g. in annotating network packet traces or logs.</t>
 
@@ -443,8 +442,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<section title="Cleaning up stale data">
 	  <t>Because the DNS-SD registration protocol is automatic, and not managed by humans,
 	  some additional bookkeeping is required.  When an update is constructed by the client,
-	  it MUST include include an EDNS(0) Update Lease option and an EDNS(0) Instance Lease
-	  option.</t>
+	  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.</t>
 
 	  <t>These leases are promises, similar to <xref target="RFC2131">DHCP leases</xref>,
 	  from the client that it will send a new update for the service registration before the
@@ -541,6 +539,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     <!-- <displayreference target="I-D.ietf-dnssd-hybrid" to="I-D.ietf-dnssd-hybrid"/> appears to not work in xml2rfc 2.6.2 -->
     <references title="Normative References">
       <?rfc include="reference.RFC.6763" anchor="RFC6763" ?>
+      <?rfc include="reference.I-D.sekar-dns-ul" ?>
     </references>
 
     <references title="Informative References">
@@ -557,7 +556,6 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.7228" ?>
       <?rfc include="reference.I-D.ietf-dnssd-hybrid"?>
       <?rfc include="reference.I-D.ietf-dnssd-push"?>
-      <?rfc include="reference.I-D.sekar-dns-ul" ?>
       <?rfc include="reference.I-D.cheshire-dnssd-roadmap" ?>
       <?rfc include="reference.I-D.cheshire-edns0-owner-option" ?>
 
