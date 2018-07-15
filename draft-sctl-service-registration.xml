@@ -102,13 +102,16 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <xref target="RFC6760"/> <xref target="ZC"/> <xref target="I-D.cheshire-dnssd-roadmap"/>.</t>
 
       <t>This document describes an enhancement to <xref target="RFC6763">DNS-Based Service
-      Discovery</xref> that allows services to register using the DNS protocol rather than using
-      mDNS.  This document is intended for three audiences: implementors of software that
-      provides services that should be advertised using DNS-SD, implementors of DNS servers that
-      will be used in contexts where DNS-SD registration is needed, and administrators of
-      networks where DNS-SD service is required.  The document is intended to provide sufficient
-      information to allow interoperable implementation of the registration protocol.</t>
+      Discovery</xref> that allows services to automatically register their services using the
+      DNS protocol rather than using mDNS.  There is already a large installed base of DNS-SD
+      clients that can do service discovery using the DNS protocol.  This extension makes it
+      much easier to take advantage of this existing functionality.</t>
 
+      <t>This document is intended for three audiences: implementors of software that provides
+      services that should be advertised using DNS-SD, implementors of DNS servers that will be
+      used in contexts where DNS-SD registration is needed, and administrators of networks where
+      DNS-SD service is required.  The document is intended to provide sufficient information to
+      allow interoperable implementation of the registration protocol.</t>
 
       <t>DNS-Based Service Discovery (DNS-SD) allows services to advertise the fact that they
       provide service, and to provide the information required to access that service.  Clients
@@ -117,9 +120,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       required to use it.</t>
 
       <t>The DNS-SD Service Registration protocol, described in this document, provides a
-      reasonably secure mechanism for publishing this information: what services are offered,
-      and how to use them.  Once published, these services can be readily discovered by clients
-      using standard DNS lookups.</t>
+      reasonably secure mechanism for publishing this information.  Once published, these
+      services can be readily discovered by clients using standard DNS lookups.</t>
 
       <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref> Section
       10 “Populating the DNS with Information” briefly discusses ways that services can publish
@@ -145,7 +147,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
     <section title="Service Registration Protocol">
 
-      <t>Services using the DNS-SD Service Registration Protocol use DNS Update
+      <t>Services that implement the DNS-SD Service Registration Protocol use DNS Update
       <xref target="RFC2136"/> <xref target="RFC3007"/> to publish service information in the DNS.
       Two variants exist, one for full-featured devices,
       and one for devices designed for "Constrained-Node Networks" <xref target="RFC7228"/>.</t>
@@ -157,7 +159,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       the names of the SRV, TXT, and PTR records describing their service(s).
       For these names they then discover the zone apex of the closest enclosing DNS zone
       using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
-      Having discovered the enclosing DNS zone, they query for the "_dns-update._udp.&lt;zone&gt;" SRV record
+      Having discovered the enclosing DNS zone, they query for the "_dns-update._udp&lt;zone&gt;" SRV record
       to discover the server to which they should send DNS updates.</t>
 
       <t>For devices designed for "Constrained-Node Networks" <xref target="RFC7228"/> some simplifications are used.
@@ -178,9 +180,10 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <t>The reason for these different assumptions is that "Constrained-Node Networks" generally require special
       egress support, and Anycast packets captured at the "Constrained-Node Network" egress can be
       assumed to have originated locally.  Low-power devices that typically use "Constrained-Node Networks" may
-      have very limited battery power, and so the additional DNS lookups required to discover
+      have very limited battery power.   The additional DNS lookups required to discover
       a registration server and then communicate with it will increase
-      the power required to advertise a service.</t>
+      the power required to advertise a service; for low-power devices, the additional flexibility
+      this provides does not justify the additional use of power.</t>
 
       <t>General networks have the potential to have more complicated topologies at the
       Internet layer, which makes anycast routing more difficult.  Such networks may or may
@@ -199,7 +202,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	as a Registration.
 	Three types of updates appear in a Registration:
 	Service Discovery records,
-	Service Description records,
+	Service Description records, and
 	Host Description records.
 	<list style="symbols">
 	  <t>Service Discovery records are one or more PTR RRs,
@@ -242,7 +245,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<t>It is possible to issue a DNS Update that does several things at once; this means
 	that it's possible to do all the work of adding a PTR resource record to the PTR RRset
 	on the Service Name if it already exists, or creating one if it doesn't, and creating or
-	updating the Service Instance Name, in a single transaction.</t>
+	updating the Service Instance Name and Host Description in a single transaction.</t>
 
 	<t>A Registration is therefore implemented as a single DNS Update message that contains
 	a service's
@@ -277,7 +280,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<section title="Testing using standard RFC2136-compliant servers">
 	  <t>It may be useful to set up a DNS server for testing that does not implement the
 	  Registration protocol.  This can be done by configuring the server to listen on
-	  the anycast address, or advertising it in the _dns-update._udp record.
+	  the anycast address, or advertising it in the _dns-update._udp SRV record.
 	  It must be configured to be authoritative for "services.arpa", and
 	  to accept updates from hosts on local networks for names under "services.arpa" without
 	  authentication.</t>
@@ -291,16 +294,16 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 	<section title="How to allow services to update standard RFC2136-compliant servers">
 	  <t>Ordinarily Registrations will fail when sent to any non-Registration Protocol
-	  server because the zone being updated is "services.arpa", and no DNS server should normally
-	  be configured to be authoritative for "services.arpa".  Therefore, a service that sends a
-	  Registration can tell that the receiving server does not support the Registration
-	  Protocol but does support RFC2136 because the RCODE will either be NOTZONE, NOTAUTH or
-	  REFUSED, or because there is no response to the update request (when using the anycast
-	  address)</t>
+	  server because the zone being updated is "services.arpa", and no DNS server that is
+	  not a Registration Protocol server should normally be configured to be authoritative
+	  for "services.arpa".  Therefore, a service that sends a Registration can tell that the
+	  receiving server does not support the Registration Protocol, but does support RFC2136,
+	  because the RCODE will either be NOTZONE, NOTAUTH or REFUSED, or because there is no
+	  response to the update request (when using the anycast address)</t>
 
 	  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
 	  updates. To do so, it must discover default registration zone and the DNS server
-	  designated to receive updates for that zone, as described earlier using the _dns-update._udp record.
+	  designated to receive updates for that zone, as described earlier using the _dns-update._udp SRV record.
 	  It can then make the update using the port and host pointed
 	  to by the SRV record, and should use appropriate constraints to avoid overwriting
 	  competing records.  Such updates are out of scope for the DNSSD Registration Protocol,
@@ -335,7 +338,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 	    <t>When sending DNS updates, the service includes a KEY record containing the public
 	    portion of the key in each Host Description update.  The update is signed using SIG(0), using
-	    the private key that corresponds to the public key in the KEY record.</t>
+	    the private key that corresponds to the public key in the KEY record.   The lifetimes
+	    of the records in the update is set using the EDNS(0) Update Lease option.</t>
 
 	    <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV, A, AAAA and TXT
 	    records</xref> is typically set to two hours.  This means that if a device is
@@ -392,7 +396,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 <?rfc subcompact="no" ?>
 
 	  <t>A Registration MUST include at least one Service Name update, at least one Service
-	  Instance Name update, and exactly one Host Description update.  An update message that
+	  Description update, and exactly one Host Description update.  An update message that
 	  does not is not a Registration.  An update message that contains any other updates, or
 	  any update constraints, is not a Registration.  Such messages should either be
 	  processed as regular RFC2136 updates, including access control checks and constraint
@@ -408,12 +412,14 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>Assuming that an update message has been validated with these conditions and is a
 	  valid Registration, the server checks that the name in the Host Description update
 	  exists.  If so, then the server checks to see if the KEY record on the name is the
-	  same as the KEY record in the update.  If it is not, then the DNS Update is rejected
+	  same as the KEY record in the update.  If it is not, then the server MUST reject
+	  the Registration
 	  with the YXDOMAIN RCODE.</t>
 
 	  <t>Otherwise, the server validates the update using SIG(0) on the public key in the
-	  KEY record of the Host Description update.  If the validation fails, the update is
-	  rejected with REFUSED.  Otherwise, the update is considered valid and authentic, and
+	  KEY record of the Host Description update.  If the validation fails, the server MUST
+	  reject the rejectration
+	  rejected with the REFUSED RCODE.  Otherwise, the update is considered valid and authentic, and
 	  is processed according to the method described in RFC2136.  The status that is
 	  returned depends on the result of processing the update.</t>
 
@@ -432,17 +438,43 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  registration protocol includes maintenance functionality not present with normal DNS
 	  updates.</t>
 	  
+	  <t>Note that the semantics of using the Registration Protocol in this way are different than
+	  for typical RFC2136 implementations: the KEY used to sign the update in the Registration Protocol
+	  only allows the client to update records that refer to its Host Description.   RFC2136
+	  implementations do not normally provide a way to enforce a constraint of this type.</t>
+
 	  <t>The server may also have a dictionary of names or name patterns that are not
 	  permitted.  If such a list is used, updates for Service Instance Names that match
 	  entries in the dictionary are rejected with YXDOMAIN.</t>
 	</section>
       </section>
 
+      <section title="TTL Consistency">
+	<t>All RRs within an RRset are required to have the same TTL
+	(<xref target="RFC2181">Clarifications to the DNS Specification</xref>, Section 5.2).
+	In order to avoid inconsistencies, the Registration Protocol places restrictions
+	on TTLs sent by services and requires that Registration Protocol Servers enforce
+	consistency.</t>
+
+	<t>Services sending Registrations MUST use consistent TTLs in all RRs within the
+	Registration.</t>
+
+	<t>Registration Protocol servers MUST check that the TTLs for all RRs within
+	the Registration are the same.   If they are not, the Registration MUST be rejected
+	with a REFUSED RCODE.</t>
+
+	<t>Additionally, when adding RRs to an RRset, for example when processing Service
+	Discovery records, the server MUST use the same TTL on all RRs in the RRset.
+	How this consistency is enforced is up to the implementation.</t>
+      </section>
+
       <section title="Maintenance">
 	<section title="Cleaning up stale data">
 	  <t>Because the DNS-SD registration protocol is automatic, and not managed by humans,
 	  some additional bookkeeping is required.  When an update is constructed by the client,
-	  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.</t>
+	  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.
+	  The Update Lease Option contains two lease times: the Update Lease Time and the Instance
+	  Lease Time.</t>
 
 	  <t>These leases are promises, similar to <xref target="RFC2131">DHCP leases</xref>,
 	  from the client that it will send a new update for the service registration before the
@@ -458,15 +490,23 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  names on which they hold leases should update well before the lease ends, in case the registration
 	  service is unavailable or under heavy load.</t>
 
-	  <t>Clients should assume that each lease ends N seconds after the update was first transmitted, where
-	  N is the number included in the option.   Servers should assume that each lease ends N seconds after
-	  the update that was successfully processed was received.  Because the server will always receive the
-	  update after the client sent it, this avoids the possibility of misunderstandings.</t>
+	  <t>The Registration Protocol server MUST include an EDNS(0) Update Lease option in the
+	  response if the lease time proposed by the service has been shortened.  The service
+	  MUST check for the EDNS(0) Update Lease option in the response and MUST use the lease
+	  times from that option in place of the options that it sent to the server when
+	  deciding when to update its registration.</t>
+	  
+	  <t>Clients should assume that each lease ends N seconds after the update was first
+	  transmitted, where N is the lease duration.  Servers should assume that each lease
+	  ends N seconds after the update that was successfully processed was received.  Because
+	  the server will always receive the update after the client sent it, this avoids the
+	  possibility of misunderstandings.</t>
 
-	  <t>DNS-SD Registration Protocol servers SHOULD reject updates that do not include a DNS update lease
-	  time.   Dual-use servers may accept updates that don't include leases, but SHOULD differentiate between
-	  DNS-SD registration protocol updates and other updates, and SHOULD reject updates that are known to
-	  be DNS-SD registration protocol updates if they do not include leases.</t>
+	  <t>DNS-SD Registration Protocol servers MUST reject updates that do not include an
+	  EDNS(0) Update Lease option.  Dual-use servers MAY accept updates that don't include
+	  leases, but SHOULD differentiate between DNS-SD registration protocol updates and
+	  other updates, and MUST reject updates that are known to be DNS-SD Registration
+	  Protocol updates if they do not include leases.</t>
 	</section>
 	<section title="Sleep Proxy">
 	  <t>Another use of Service Registration Protocol is for devices
@@ -477,16 +517,17 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  described above, the device includes an
 	  <xref target="I-D.cheshire-edns0-owner-option">EDNS(0) OWNER Option</xref>.</t>
 
-	  <t>The DNS Update Lease option constitutes a promise by the device
-	  that it will wake up before this time elapses, to renew its records
+	  <t>The EDNS(0) Update Lease option constitutes a promise by the device
+	  that it will wake up before this time elapses, to renew its registration
 	  and thereby demonstrate that it is still attached to the network.
-	  If it fails to renew the records by this time, that indicates that it is
-	  no longer attached to the network, and its records should be deleted.</t>
+	  If it fails to renew the registration by this time, that indicates that it is
+	  no longer attached to the network, and its registration (except for the KEY in the
+	  Host Description) should be deleted.</t>
 
 	  <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
 	  and will not be receptive to normal network traffic.
 	  When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
-	  that signifies that the Registration Service should set up a proxy for any
+	  that signifies that the Registration Protocol server should set up a proxy for any
 	  IPv4 or IPv6 address records in the DNS Update message.
 	  This proxy should send ARP or ND messages claiming
 	  ownership of the IPv4 and/or IPv6 addresses in the records in question.
@@ -513,6 +554,11 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       that will be processed successfully.   Servers should therefore be configured to reject updates
       from source addresses outside of the administrative domain of the server.</t>
 
+      <t>For Anycast updates, this validation must be enforced by every router that connects the CDN
+      to the unconstrained portion of the network.   For TCP updates, the initial SYN-SYN+ACK
+      handshake prevents updates being forged from off-network.   In order to ensure that this
+      handshake happens, Service Discovery Protocol servers MUST NOT accept 0-RTT TCP payloads.</t>
+
       <t>Note that these rules only apply to the validation of DNS-SD registration
       protocol updates.   A server that accepts updates from DNS-SD registration protocol
       clients may also accept other DNS updates, and those DNS updates may be validated
@@ -531,7 +577,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     </section>
     <section title="Acknowledgments">
       <t>Thanks to Toke Høiland-Jørgensen for a thorough technical review, to Tamara Kemper for
-      doing a nice developmental edit, and [...] more reviewers to come, hopefully.</t>
+      doing a nice developmental edit, Tim Wattenberg for doing a service implementation at the
+      Montreal Hackathon at IETF 102, and [...] more reviewers to come, hopefully.</t>
     </section>
   </middle>
 
@@ -547,6 +594,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.1035" ?>
       <?rfc include="reference.RFC.2131" ?>
       <?rfc include="reference.RFC.2136" ?>
+      <?rfc include="reference.RFC.2181" ?>
       <?rfc include="reference.RFC.2931" ?>
       <?rfc include="reference.RFC.3007" ?>
       <?rfc include="reference.RFC.3152" ?>
