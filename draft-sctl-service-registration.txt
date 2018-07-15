@@ -5,8 +5,8 @@
 Internet Engineering Task Force                              S. Cheshire
 Internet-Draft                                                Apple Inc.
 Intended status: Informational                                  T. Lemon
-Expires: January 12, 2019                            Nibbhaya Consulting
-                                                           July 11, 2018
+Expires: January 15, 2019                            Nibbhaya Consulting
+                                                           July 14, 2018
 
 
      Service Registration Protocol for DNS-Based Service Discovery
@@ -19,9 +19,9 @@ Abstract
    packets.  This eliminates the dependency on Multicast DNS as the
    foundation layer, which greatly improves scalability and improves
    performance on networks where multicast service is not an optimal
-   choice, particularly 802.11 (WiFi) and 802.15 (IoT) networks.  DNS-SD
-   Service registration uses public keys and SIG(0) to allow services to
-   defend their registrations against attack.
+   choice, particularly 802.11 (Wi-Fi) and 802.15.4 (IoT) networks.
+   DNS-SD Service registration uses public keys and SIG(0) to allow
+   services to defend their registrations against attack.
 
 Status of This Memo
 
@@ -38,7 +38,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on January 12, 2019.
+   This Internet-Draft will expire on January 15, 2019.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Cheshire & Lemon        Expires January 12, 2019                [Page 1]
+Cheshire & Lemon        Expires January 15, 2019                [Page 1]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
@@ -94,38 +94,94 @@ Internet-Draft        Service Registration Protocol            July 2018
    In the DNS-Based Service Discovery specification [RFC6763] Section 10
    "Populating the DNS with Information" briefly discusses ways that
    services can publish their information in the DNS namespace.  In the
-   case of Multicast DNS [RFC6762], it allows clients to directly query
-   services on the local link for names in the ".local" namespace.
+   case of Multicast DNS [RFC6762], it allows services to publish their
+   information on the local link, using names in the ".local" namespace,
+   which makes their services directly discoverable by peers attached to
+   that same local link.
 
    RFC6763 also allows clients to discover services using the DNS
-   protocol [RFC1035]; this is done either by having a system
-   administrator manually configure service information in the DNS, or
-   by using a Discovery Proxy [I-D.ietf-dnssd-hybrid], which performs
-   mDNS queries on behalf clients that issue queries using DNS.  This
-   eliminates the "link local" limitation of mDNS, but provides no
-   additional security, and still relies on multicast.
+   protocol [RFC1035].  This can be done by having a system
+   administrator manually configure service information in the DNS, but
+   manually populating DNS authoritative server databases is costly and
+   potentially error-prone, and requires a knowledgable network
+   administrator.  Consequently, although all DNS-SD client
+   implementations of which we are aware support DNS-SD using DNS
 
 
 
-
-
-Cheshire & Lemon        Expires January 12, 2019                [Page 2]
+Cheshire & Lemon        Expires January 15, 2019                [Page 2]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
 
-   Manually populating DNS server databases is costly and potentially
-   error-prone, and requires a knowledgable network administrator.
-   Consequently, although all DNS-SD client implementations of which we
-   are aware support DNS-SD using DNS queries, it is much less
-   frequently deployed than mDNS.  This document describes a solution: a
-   way to deploy DNS-SD in DNS that can be as automatic as mDNS, but
-   with better performance, scalability and security.
+   queries, in practice it is used much less frequently than mDNS.  The
+   Discovery Proxy [I-D.ietf-dnssd-hybrid] provides one way to
+   automatically populate the DNS namespace, but is only appropriate on
+   networks where services are already advertised using mDNS.  This
+   document describes a solution more suitable for networks where
+   multicast is inefficient, or undesirable for other reasons, by
+   supporting both offering of services, and discovery of services,
+   using unicast.
 
 2.  Service Registration Protocol
 
    Services using the DNS-SD Service Registration Protocol use DNS
    Update [RFC2136] [RFC3007] to publish service information in the DNS.
+   Two variants exist, one for full-featured devices, and one for
+   devices designed for "Constrained-Node Networks" [RFC7228].
+
+   Full-featured devices are either configured manually, or use the
+   "dr._dns-sd._udp" query [RFC6763] to learn the default registration
+   domain from the network.  Using the chosen service registration
+   domain, full-featured devices construct the names of the SRV, TXT,
+   and PTR records describing their service(s).  For these names they
+   then discover the zone apex of the closest enclosing DNS zone using
+   SOA queries [I-D.ietf-dnssd-push].  Having discovered the enclosing
+   DNS zone, they query for the "_dns-update._udp.<zone>" SRV record to
+   discover the server to which they should send DNS updates.
+
+   For devices designed for "Constrained-Node Networks" [RFC7228] some
+   simplifications are used.  Instead of being configured with (or
+   discovering) the service registration domain, the (proposed) special
+   use domain name [RFC6761] "services.arpa" is used.  Instead of
+   learning the server to which they should send DNS updates, a fixed
+   IPv6 anycast address is used (value TBD).  It is the responsibility
+   of a "Constrained-Node Network" supporting DNS-SD Service
+   Registration Protocol to provide appropriate anycast routing to
+   deliver the DNS updates to the appropriate server.  It is the
+   responsibility of the DNS-SD Service Registration server on a
+   "Constrained-Node Network" to handle the updates appropriately.  In
+   some network environments, updates may be accepted directly into a
+   local "services.arpa" zone, which has only local visibility.  In
+   other network environments, updates for names ending in
+   "services.arpa" may be rewritten internally to names with broader
+   visibility.
+
+   The reason for these different assumptions is that "Constrained-Node
+   Networks" generally require special egress support, and Anycast
+   packets captured at the "Constrained-Node Network" egress can be
+   assumed to have originated locally.  Low-power devices that typically
+   use "Constrained-Node Networks" may have very limited battery power,
+
+
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 3]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
+   and so the additional DNS lookups required to discover a registration
+   server and then communicate with it will increase the power required
+   to advertise a service.
+
+   General networks have the potential to have more complicated
+   topologies at the Internet layer, which makes anycast routing more
+   difficult.  Such networks may or may not have the infrastructure
+   required to route anycast to a server that can process it.  However,
+   they can be assumed to be able to provide registration domain
+   discovery and routing.  By requiring the use of TCP, the possibility
+   of off-network spoofing is eliminated.
+
    We will discuss several parts to this process: how to know what to
    publish, how to know where to publish it (under what name), how to
    publish it, how to secure its publication, and how to maintain the
@@ -134,46 +190,27 @@ Internet-Draft        Service Registration Protocol            July 2018
 2.1.  What to publish
 
    We refer to the message that services using the DNSSD Registration
-   Protocol send as a Registration.  Four types of updates can appear in
-   a Registration: Service Name updates, Service Instance Name updates,
-   Forward Mapping updates and Inverse Mapping updates.
+   Protocol send as a Registration.  Three types of updates appear in a
+   Registration: Service Discovery records, Service Description records,
+   Host Description records.
 
-   o  Service Name ([RFC6763] section 4.1.1) updates contain a PTR RRset
-      update with one or more (typically one) PTR RRs, each of which
-      points to a Service Instance Name that is included in the
-      Registration.  Service Name updates do not update any other type
-      of RR.
+   o  Service Discovery records are one or more PTR RRs, mapping from
+      the generic service type (or subtype) to the specific Service
+      Instance Name.
 
-   o  Service Instance Name ([RFC6763] section 4.1.2) updates contain
-      exactly one SRV RR, and one or more TXT RRs.  They do not update
-      any other RR type.  Every Service Instance Name update in a
-      Registration MUST be referenced by at least one PTR RR update in
-      that Registration.
+   o  Service Description records are exactly one SRV RR, and one or
+      more TXT RRs, both with the same name, the Service Instance Name
+      ([RFC6763] section 4.1).  In principle Service Description records
+      can include other record types, with the same Service Instance
+      Name, though in practice they rarely do.  The Service Instance
+      Name MUST be referenced by one or more Service Discovery PTR
+      records, unless it is a placeholder service registration for an
+      intentionally non-discoverable service name.
 
-   o  Forward Mapping updates contain an update to either an A or an
-      AAAA RR, and an update to a KEY RR.
-
-   o  Inverse Mapping updates contain an update to a PTR RR.  The PTR RR
-      in an Inverse Mapping update MUST reference the name of a Forward
-      Mapping update.  Inverse Mappings for IP addresses are typically
-      stored on subdomain names of the "IN-ADDR.ARPA" domain ([RFC1034]
-      section 3.3) for IPv4 addresses or the "IP6.ARPA" domain
-      ([RFC3152]).  However, Updates are required to be to a single
-      zone, and indeed a site may choose to use some mapping other than
-      the default.  Therefore, Inverse Mapping updates use ".local"
-      instead of ".arpa".  So for example the name of a reverse entry
-
-
-
-Cheshire & Lemon        Expires January 12, 2019                [Page 3]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
-
-      for an IPv4 address will look like: "1.2.0.192.in-addr.local".
-      The name of a reverse entry for an IPv6 address will look like: "0
-      .f.e.d.c.b.a.9.8.7.6.5.4.3.2.1.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6
-      .local".
+   o  The Host Description records for a service are a KEY RR, used to
+      claim exclusive ownership of the service registration, and one or
+      more RRs of type A or AAAA, giving the IPv4 or IPv6 address(es) of
+      the host where the service resides.
 
    RFC 6763 describes the details of what each of these types of updates
    contains and is the definitive source for information about what to
@@ -181,6 +218,14 @@ Internet-Draft        Service Registration Protocol            July 2018
    with enough information about what will be published that the service
    registration process can be understood at a high level without first
    learning the full details of DNS-SD.  Also, the "Service Instance
+
+
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 4]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
    Name" is an important aspect of first-come, first-serve naming, which
    we describe later on in this document.
 
@@ -188,49 +233,15 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    Multicast DNS uses a single namespace, ".local", which is valid on
    the local link.  This convenience is not available for DNS-SD using
-   the DNS protocol: the portion of the DNS namespace in which services
-   on the local network are to be published must be discovered by the
-   service before it can register itself.
+   the DNS protocol: services must exist in some specific unicast
+   namespace.
 
-   Names published using DNS-SD service registration will be published
-   under some name other than .local.  However, the process of
-   discovering what that name is is complicated, and for any given
-   network it should always be the case that there will be just one
-   namespace in which registered names will be published.  Rather than
-   requiring the service to discover this name before issuing a
-   registration, the service SHOULD simply use the name ".local."  The
-   DNS server that receives the registration request will rewrite all
-   instances of the terminal label ".local" to use the local
-   registration domain name.  The response to the DNS Update being used
-   to register the service will contain the rewritten names, instead of
-   ".local".  Subsequent updates should still use the ".local" domain
-   and not the registration domain, since the registration domain may
-   change over time or when the service is physically moved to a new
-   network.
-
-   This should not be taken to mean that it is not permissible for some
-   Registrations to be published under one domain, and others to be
-   published under another.  Rather, it is only REQUIRED that any given
-   Registration be consistently published under the same domain.  In
-   other words, whatever process is used to decide which domain to
-   substitute for .local, that process must always produce the same
-   outcome for any given service.
-
-   So for example, a site might set up a whitelist so that known
-   services are registered in one domain, while unknown services are
-
-
-
-Cheshire & Lemon        Expires January 12, 2019                [Page 4]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
-
-   registered in another.  It is of course permissible that when a
-   change is made to such a whitelist, the services affected by this
-   change might then be registered in different domains: the requirement
-   for consistency is just that absent such a configuration change, the
-   registered domain will always be consistent per service.
+   As described above, full-featured devices are responsible for knowing
+   in what domain they should register their services.  Devices made for
+   "Constrained-Node Networks" register in the (proposed) special use
+   domain name [RFC6761] "services.arpa", and let the DNS-SD Service
+   Registration server handle rewriting that to a different domain if
+   necessary.
 
 2.3.  How to publish it
 
@@ -238,16 +249,11 @@ Internet-Draft        Service Registration Protocol            July 2018
    once; this means that it's possible to do all the work of adding a
    PTR resource record to the PTR RRset on the Service Name if it
    already exists, or creating one if it doesn't, and creating or
-   updating the Service Instance Name in a single transaction.
+   updating the Service Instance Name, in a single transaction.
 
    A Registration is therefore implemented as a single DNS Update
-   message that contains one or more Service Name updates, one or more
-   Service Instance Name updates, exactly one Forward Mapping update,
-   and, optionally, one Inverse Mapping update.  The Inverse Mapping
-   update is not required because it is not used for service discovery,
-   but may be useful for debugging, or for associating an IP address
-   with the public key in the KEY record included in the Forward Mapping
-   update.
+   message that contains a service's Service Discovery records, Service
+   Description records, and Host Description records.
 
    Updates done according to this specification are somewhat different
    than regular DNS Updates as defined in RFC2136.  RFC2136 assumes that
@@ -263,83 +269,50 @@ Internet-Draft        Service Registration Protocol            July 2018
    Registrations, and so there is no need for the service sending the
    Registration to put in any explicit constraints.
 
-   There are two ways of sending Registrations.  The first is to use UDP
-   Anycast.  The update is sent to port 53 on ANYCAST_IPv4 and/or
-   ANYCAST_IPv6.  The second way is to discover the default registration
-   domain, discover the DNS Update server to use for that zone, and then
-   make a TCP connection to that server and send the update using DNS
-   over TCP.
-
-   Hosts connected to LLNs should use ANYCAST_IPv6.  Hosts that are not
-   connected to LLNs should attempt both anycast addresses, if both
-   protocols are available, and also attempt to do the update using TCP.
-   LLNs are assumed to provide anycast Registration Protocol service
 
 
 
-Cheshire & Lemon        Expires January 12, 2019                [Page 5]
+
+
+
+
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 5]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
 
-   using UDP over IPv6; other networks may or may not support Anycast
-   registration, but are assumed, if they support registration at all,
-   to at least support updating over TCP.
+2.3.1.  How DNS-SD Service Registration differs from standard RFC2136
+        DNS Update
 
-   The reason for these different assumptions is that LLNs generally
-   require special egress support, and Anycast packets captured at the
-   LLN interface of the egress can be assumed to have originated
-   locally.  Low-power devices that typically use LLNs may have very
-   limited battery power, and so the additional DNS lookups required to
-   discover a registration server and then communicate with it using TCP
-   will dramatically increase the power required to advertise a service.
+   DNS-SD Service Registration is based on standard RFC2136 DNS Update,
+   with some differences:
 
-   Non-LLN networks have the potential to have more complicated
-   topologies at the Internet layer, which makes Anycast routing more
-   difficult.  Such networks may or may not have the infrastructure
-   required to route Anycast to a server that can process it.  However,
-   they can be assumed to be able to provide registration domain
-   discovery and routing.  By requiring the use of TCP, the possibility
-   of off-network spoofing is eliminated.
+   o  It implements first-come first-served name allocation, protected
+      using SIG(0).
 
-   How hosts on non-LLN networks should order their update attempts is
-   up to the implementation, and should be based on that
-   implementation's anticipated use cases.  It is out of scope for this
-   document to speculate in detail about how this tradeoff will be made.
-   However, such hosts MUST attempt both TCP and Anycast UDP updates in
-   some order, or may do both at the same time.
+   o  It enforces policy about what updates are allowed.
 
-   Although the standard DNSSD discovery process is followed when
-   discovering the server to which to send updates, the updates should
-   still be to the ".local" zone, and not to the advertized default
-   registration zone.  The default registration zone is merely used to
-   locate the correct SRV record to use when sending the update.
+   o  It optionally performs rewriting of "services.arpa" to some other
+      domain.
 
-2.3.1.  Discovering the Registration domain and server
+   o  It optionally performs automatic population of the address-to-name
+      reverse mapping domains.
 
-   The discovery process for the default registration domain
-   (dr._dns_sd._udp.<domain>) is detailed in [RFC6763] section 11.  In
-   order to discover where to send the update, the service should look
-   for an SRV record under _dns-update._udp.<zone>, where "zone" is the
-   default registration zone.
+   o  A DNS-SD Service Registration server is not required to implement
+      general DNS Update prerequsite processing.
 
-2.3.2.  Testing using RFC2136-capable non-conforming servers
+   o  Simplified clients are allowed to send updates to an anycast
+      address, for names ending in "services.arpa"
+
+2.3.2.  Testing using standard RFC2136-compliant servers
 
    It may be useful to set up a DNS server for testing that does not
    implement the Registration protocol.  This can be done by configuring
-   the server to listen on ANYCAST_IPv4 and/or ANYCAST_IPv6, or
-   advertising it as described in Section 2.3.1.  It must be configured
-
-
-
-
-Cheshire & Lemon        Expires January 12, 2019                [Page 6]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
-
-   to be authoritative for ".local", and to accept updates from hosts on
-   local networks for names under ".local" without authentication.
+   the server to listen on the anycast address, or advertising it in the
+   _dns-update._udp record.  It must be configured to be authoritative
+   for "services.arpa", and to accept updates from hosts on local
+   networks for names under "services.arpa" without authentication.
 
    A server configured in this way will be able to successfully accept
    and process Registrations from services that send Registrations.
@@ -348,28 +321,37 @@ Internet-Draft        Service Registration Protocol            July 2018
    not stop two Registrations, sent by different services, that claim
    the same name(s), from overwriting each other.
 
-2.3.3.  How to allow services to update non-conforming RFC2136 servers
+2.3.3.  How to allow services to update standard RFC2136-compliant
+        servers
 
    Ordinarily Registrations will fail when sent to any non-Registration
-   Protocol server because the zone being updated is ".local", and no
-   DNS server should normally be configured to be authoritative for
-   "local."  Therefore, a service that sends a Registration can tell
-   that the receiving server does not support the Registration Protocol
-   but does support RFC2136 because the RCODE will either be NOTZONE,
-   NOTAUTH or REFUSED, or because there is no response to the update
-   request (when using the anycast address)
+   Protocol server because the zone being updated is "services.arpa",
+   and no DNS server should normally be configured to be authoritative
+   for "services.arpa".  Therefore, a service that sends a Registration
+   can tell that the receiving server does not support the Registration
+   Protocol but does support RFC2136 because the RCODE will either be
+
+
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 6]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
+   NOTZONE, NOTAUTH or REFUSED, or because there is no response to the
+   update request (when using the anycast address)
 
    In this case a service MAY attempt to register itself using regular
    RFC2136 DNS updates.  To do so, it must discover default registration
    zone and the DNS server designated to receive updates for that zone,
-   as described earlier in Section 2.3.1.  It can then make the update
-   using the port and host pointed to by the SRV record, and should use
-   appropriate constraints to avoid overwriting competing records.  Such
-   updates are out of scope for the DNSSD Registration Protocol, and a
-   service that implements the DNSSD Registration Protocol MUST first
-   attempt to use the Registration Protocol to register itself, and
-   should only attempt to use RFC2136 backwards compatibility if that
-   fails.
+   as described earlier using the _dns-update._udp record.  It can then
+   make the update using the port and host pointed to by the SRV record,
+   and should use appropriate constraints to avoid overwriting competing
+   records.  Such updates are out of scope for the DNSSD Registration
+   Protocol, and a service that implements the DNSSD Registration
+   Protocol MUST first attempt to use the Registration Protocol to
+   register itself, and should only attempt to use RFC2136 backwards
+   compatibility if that fails.
 
 2.4.  How to secure it
 
@@ -385,14 +367,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    describe here improves upon the security of mDNS.  The goal is not to
    provide the level of security of a network managed by a skilled
    operator.
-
-
-
-
-Cheshire & Lemon        Expires January 12, 2019                [Page 7]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
 2.4.1.  First-Come First-Served Naming
 
@@ -411,8 +385,17 @@ Internet-Draft        Service Registration Protocol            July 2018
    on the client, the client MUST be pre-configured with a public/
    private key pair that can be used.
 
+
+
+
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 7]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
    When sending DNS updates, the service includes a KEY record
-   containing the public portion of the key in each Forward Mapping
+   containing the public portion of the key in each Host Description
    update.  The update is signed using SIG(0), using the private key
    that corresponds to the public key in the KEY record.
 
@@ -430,88 +413,55 @@ Internet-Draft        Service Registration Protocol            July 2018
    This way, even if a device is unplugged from the network for a few
    days, and its services are not available for that time, no other
    rogue device can come along and immediately claim its name the moment
-   it disappears from the network, and yet the name is eventually
-   cleaned up and made available for re-use.
+   it disappears from the network.  In the event that a device is
+   unplugged from the network and permanently discarded, then its name
+   is eventually cleaned up and made available for re-use.
 
 2.4.2.  Registration Server Behavior
 
    The Registration server checks each update in the Registration to see
-   that it is either a Service Name update, a Service Instance Name
-   update, a Forward Mapping update, or a Reverse Mapping update.
+   that it is either a a Service Discovery update, a Service Description
+   update, or a Host Description update.
 
-   An update is a Service Name update if
+   An update is a Service Discovery update if it contains
 
-   o  it contains exactly one RRset update,
+   o  exactly one RRset update,
+   o  which is for a PTR RR,
+   o  which points to a Service Instance Name
+   o  for which an update is present in the Registration.
+
+   An update is a Service Description update if, for the appropriate
+   Service Instance Name, it contains
+
+   o  exactly one "Delete all RRsets from a name" update,
+   o  exactly one SRV RRset update,
+   o  one or more TXT RRset updates,
+   o  and the target of the SRV record update references a hostname for
+      which there is a Host Description update in the Registration.
+
+   An update is a Host Description update if, for the appropriate
+   hostname, it contains
 
 
 
-Cheshire & Lemon        Expires January 12, 2019                [Page 8]
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 8]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
 
-   o  which is for a PTR RR,
-
-   o  which points to a Service Instance Name
-
-   o  for which an update is present in the Registration.
-
-   An update is a Service Instance Name update if
-
-   o  it contains exactly one SRV RRset delete,
-
-   o  exactly one SRV RRset update,
-
-   o  exactly one TXT RRset delete,
-
-   o  zero or more TXT RRset updates,
-
-   o  no other RRset updates,
-
-   o  no other RRset deletes,
-
-   o  the SRV record points to a Forward Mapping for which there is an
-      update in the Registration.
-
-   An update is a Forward Mapping update if
-
-   o  it contains either an A or AAAA RRset delete (according to the
-      address family of the source IP address of the Registration
-      message),
-
-   o  an A or AAAA RR update with the source IP address of the
-      Registration message,
-
+   o  exactly one "Delete all RRsets from a name" update,
+   o  A or AAAA RR update(s)
    o  a KEY RR update that adds a KEY RR that contains the public key
       corresponding to the private key that was used to sign the
       message,
-
    o  there is a Service Instance Name update in the Registration that
-      updates an SRV RR so that it points to the name being updated by
-      this update.
-
-   An update is a Reverse Mapping update if
-
-   o  it updates a name that is the reverse mapping name for the source
-      IP address (IPv4 or IPv6) of the Registration message,
-
-   o  it includes one PTR RRset delete,
-
-   o  it includes one RRset update for a PTR record, and
-
-
-
-Cheshire & Lemon        Expires January 12, 2019                [Page 9]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
-
-   o  the Registration message includes a Forward Mapping update for the
-      name to which the PTR record points.
+      updates an SRV RR so that it points to the hostname being updated
+      by this update.
 
    A Registration MUST include at least one Service Name update, at
-   least one Service Instance Name update, and exactly one Forward
-   Mapping update.  An update message that does not is not a
+   least one Service Instance Name update, and exactly one Host
+   Description update.  An update message that does not is not a
    Registration.  An update message that contains any other updates, or
    any update constraints, is not a Registration.  Such messages should
    either be processed as regular RFC2136 updates, including access
@@ -528,13 +478,13 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    Assuming that an update message has been validated with these
    conditions and is a valid Registration, the server checks that the
-   name in the Forward Mapping update exists.  If so, then the server
+   name in the Host Description update exists.  If so, then the server
    checks to see if the KEY record on the name is the same as the KEY
    record in the update.  If it is not, then the DNS Update is rejected
    with the YXDOMAIN RCODE.
 
    Otherwise, the server validates the update using SIG(0) on the public
-   key in the KEY record of the Forward Mapping update.  If the
+   key in the KEY record of the Host Description update.  If the
    validation fails, the update is rejected with REFUSED.  Otherwise,
    the update is considered valid and authentic, and is processed
    according to the method described in RFC2136.  The status that is
@@ -548,19 +498,18 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    There are at least two benefits to doing this rather than simply
    using normal SIG(0) DNS updates.  First, the same registration
+
+
+
+Cheshire & Lemon        Expires January 15, 2019                [Page 9]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
    protocol can be used in both cases, so both use cases can be
    addressed by the same service implementation.  Second, the
    registration protocol includes maintenance functionality not present
    with normal DNS updates.
-
-
-
-
-
-Cheshire & Lemon        Expires January 12, 2019               [Page 10]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
    The server may also have a dictionary of names or name patterns that
    are not permitted.  If such a list is used, updates for Service
@@ -587,8 +536,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    The reasoning behind the different lease times is discussed in the
    section on first-come, first-served naming Section 2.4.1.  DNS-SD
    Registration Protocol servers may be configured with limits for these
-   values.  A default limit of two hours for the Update Lease and 30
-   days for the Instance Lease are currently thought to be good choices.
+   values.  A default limit of two hours for the Update Lease and 14
+   days for the SIG(0) KEY are currently thought to be good choices.
    Clients that are going to continue to use names on which they hold
    leases should update well before the lease ends, in case the
    registration service is unavailable or under heavy load.
@@ -604,19 +553,17 @@ Internet-Draft        Service Registration Protocol            July 2018
    not include a DNS update lease time.  Dual-use servers may accept
    updates that don't include leases, but SHOULD differentiate between
    DNS-SD registration protocol updates and other updates, and SHOULD
-   reject updates that are known to be DNS-SD registration protocol
-   updates if they do not include leases.
 
 
 
 
-
-
-
-Cheshire & Lemon        Expires January 12, 2019               [Page 11]
+Cheshire & Lemon        Expires January 15, 2019               [Page 10]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   reject updates that are known to be DNS-SD registration protocol
+   updates if they do not include leases.
 
 2.5.2.  Sleep Proxy
 
@@ -663,17 +610,17 @@ Internet-Draft        Service Registration Protocol            July 2018
    therefore be configured to reject updates from source addresses
    outside of the administrative domain of the server.
 
-   Note that these rules only apply to the validation of DNS-SD
-   registration protocol updates.  A server that accepts updates from
-   DNS-SD registration protocol clients may also accept other DNS
 
 
 
-Cheshire & Lemon        Expires January 12, 2019               [Page 12]
+Cheshire & Lemon        Expires January 15, 2019               [Page 11]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+   Note that these rules only apply to the validation of DNS-SD
+   registration protocol updates.  A server that accepts updates from
+   DNS-SD registration protocol clients may also accept other DNS
    updates, and those DNS updates may be validated using different
    rules.  However, in the case of a DNS service that accepts automatic
    updates, the intersection of the DNS-SD service registration update
@@ -722,10 +669,7 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-
-
-
-Cheshire & Lemon        Expires January 12, 2019               [Page 13]
+Cheshire & Lemon        Expires January 15, 2019               [Page 12]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
@@ -752,18 +696,39 @@ Internet-Draft        Service Registration Protocol            July 2018
               RFC 6760, DOI 10.17487/RFC6760, February 2013,
               <https://www.rfc-editor.org/info/rfc6760>.
 
+   [RFC6761]  Cheshire, S. and M. Krochmal, "Special-Use Domain Names",
+              RFC 6761, DOI 10.17487/RFC6761, February 2013,
+              <https://www.rfc-editor.org/info/rfc6761>.
+
    [RFC6762]  Cheshire, S. and M. Krochmal, "Multicast DNS", RFC 6762,
               DOI 10.17487/RFC6762, February 2013,
               <https://www.rfc-editor.org/info/rfc6762>.
+
+   [RFC7228]  Bormann, C., Ersue, M., and A. Keranen, "Terminology for
+              Constrained-Node Networks", RFC 7228,
+              DOI 10.17487/RFC7228, May 2014,
+              <https://www.rfc-editor.org/info/rfc7228>.
 
    [I-D.ietf-dnssd-hybrid]
               Cheshire, S., "Discovery Proxy for Multicast DNS-Based
               Service Discovery", draft-ietf-dnssd-hybrid-08 (work in
               progress), March 2018.
 
+   [I-D.ietf-dnssd-push]
+              Pusateri, T. and S. Cheshire, "DNS Push Notifications",
+              draft-ietf-dnssd-push-14 (work in progress), March 2018.
+
    [I-D.sekar-dns-ul]
               Sekar, K., "Dynamic DNS Update Leases", draft-sekar-dns-
               ul-01 (work in progress), August 2006.
+
+
+
+
+Cheshire & Lemon        Expires January 15, 2019               [Page 13]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
 
    [I-D.cheshire-dnssd-roadmap]
               Cheshire, S., "Service Discovery Road Map", draft-
@@ -777,14 +742,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    [ZC]       Cheshire, S. and D. Steinberg, "Zero Configuration
               Networking: The Definitive Guide", O'Reilly Media, Inc. ,
               ISBN 0-596-10100-7, December 2005.
-
-
-
-
-Cheshire & Lemon        Expires January 12, 2019               [Page 14]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
 Authors' Addresses
 
@@ -824,17 +781,4 @@ Authors' Addresses
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-Cheshire & Lemon        Expires January 12, 2019               [Page 15]
+Cheshire & Lemon        Expires January 15, 2019               [Page 14]

@@ -72,7 +72,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       </address>
     </author>
 
-    <date year='2018' month='July' day='11'/>
+    <date year='2018' month='July' day='14'/>
     <area>Internet</area>
     <workgroup>Internet Engineering Task Force</workgroup>
     <keyword>Multicast DNS</keyword>
@@ -88,7 +88,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       enable DNS-Based Service Discovery using only unicast packets.  This eliminates the
       dependency on Multicast DNS as the foundation layer, which greatly improves scalability
       and improves performance on networks where multicast service is not an optimal choice,
-      particularly 802.11 (WiFi) and 802.15 (IoT) networks.   DNS-SD Service registration uses
+      particularly 802.11 (Wi-Fi) and 802.15.4 (IoT) networks.   DNS-SD Service registration uses
       public keys and SIG(0) to allow services to defend their registrations against attack.
       </t>
     </abstract>
@@ -124,58 +124,97 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref> Section
       10 “Populating the DNS with Information” briefly discusses ways that services can publish
       their information in the DNS namespace.  In the case of <xref target="RFC6762">Multicast
-      DNS</xref>, it allows clients to directly query services on the local link for names in the
-      ".local" namespace.</t>
+      DNS</xref>, it allows services to publish their information on the
+      local link, using names in the ".local" namespace, which makes their
+      services directly discoverable by peers attached to that same local link.</t>
 
-      <t>RFC6763 also allows clients to discover services using <xref target="RFC1035">the DNS
-      protocol</xref>; this is done either by having a system administrator manually configure
-      service information in the DNS, or by using a <xref target="I-D.ietf-dnssd-hybrid">Discovery
-      Proxy</xref>, which performs mDNS queries on behalf clients that issue queries using DNS.
-      This eliminates the "link local" limitation of mDNS, but provides no additional security,
-      and still relies on multicast.</t>
-
-      <t>Manually populating DNS server databases is costly and potentially error-prone, and
-      requires a knowledgable network administrator.  Consequently, although all DNS-SD client
-      implementations of which we are aware support DNS-SD using DNS queries, it is much less
-      frequently deployed than mDNS.  This document describes a solution: a way to deploy DNS-SD
-      in DNS that can be as automatic as mDNS, but with better performance, scalability and
-      security.</t>
+      <t>RFC6763 also allows clients to discover services using <xref target="RFC1035">the DNS protocol</xref>.
+      This can be done by having a system administrator manually configure service
+      information in the DNS, but manually populating DNS authoritative server databases is
+      costly and potentially error-prone, and requires a knowledgable network administrator.
+      Consequently, although all DNS-SD client implementations of which we are aware support
+      DNS-SD using DNS queries, in practice it is used much less frequently than mDNS.
+      The <xref target="I-D.ietf-dnssd-hybrid">Discovery Proxy</xref> provides one way to
+      automatically populate the DNS namespace, but is only appropriate on networks
+      where services are already advertised using mDNS.
+      This document describes a solution more suitable for networks where multicast is
+      inefficient, or undesirable for other reasons, by supporting both offering of services,
+      and discovery of services, using unicast.</t>
     <?rfc needLines="20" ?>
     </section>
 
     <section title="Service Registration Protocol">
 
-      <t>Services using the DNS-SD Service Registration Protocol use DNS Update <xref
-      target="RFC2136"/> <xref target="RFC3007"/> to publish service information in the DNS.  We
+      <t>Services using the DNS-SD Service Registration Protocol use DNS Update
+      <xref target="RFC2136"/> <xref target="RFC3007"/> to publish service information in the DNS.
+      Two variants exist, one for full-featured devices,
+      and one for devices designed for "Constrained-Node Networks" <xref target="RFC7228"/>.</t>
+
+      <t>Full-featured devices are either configured manually,
+      or use the "dr._dns-sd._udp" query <xref target="RFC6763"/>
+      to learn the default registration domain from the network.
+      Using the chosen service registration domain, full-featured devices construct
+      the names of the SRV, TXT, and PTR records describing their service(s).
+      For these names they then discover the zone apex of the closest enclosing DNS zone
+      using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
+      Having discovered the enclosing DNS zone, they query for the "_dns-update._udp.&lt;zone&gt;" SRV record
+      to discover the server to which they should send DNS updates.</t>
+
+      <t>For devices designed for "Constrained-Node Networks" <xref target="RFC7228"/> some simplifications are used.
+      Instead of being configured with (or discovering) the service registration domain,
+      the (proposed) special use domain name <xref target="RFC6761"/> "services.arpa" is used.
+      Instead of learning the server to which they should send DNS updates,
+      a fixed IPv6 anycast address is used (value TBD).
+      It is the responsibility of a "Constrained-Node Network" supporting DNS-SD Service Registration Protocol
+      to provide appropriate anycast routing to deliver the DNS updates to the appropriate server.
+      It is the responsibility of the DNS-SD Service Registration server on a "Constrained-Node Network"
+      to handle the updates appropriately.
+      In some network environments, updates may be accepted directly into a local "services.arpa" zone,
+      which has only local visibility.
+      In other network environments, updates for names ending in "services.arpa" may be rewritten internally
+      to names with broader visibility.
+      </t>
+
+      <t>The reason for these different assumptions is that "Constrained-Node Networks" generally require special
+      egress support, and Anycast packets captured at the "Constrained-Node Network" egress can be
+      assumed to have originated locally.  Low-power devices that typically use "Constrained-Node Networks" may
+      have very limited battery power, and so the additional DNS lookups required to discover
+      a registration server and then communicate with it will increase
+      the power required to advertise a service.</t>
+
+      <t>General networks have the potential to have more complicated topologies at the
+      Internet layer, which makes anycast routing more difficult.  Such networks may or may
+      not have the infrastructure required to route anycast to a server that can process it.
+      However, they can be assumed to be able to provide registration domain discovery and
+      routing.  By requiring the use of TCP, the possibility of off-network spoofing is
+      eliminated.</t>
+
+      <t>We
       will discuss several parts to this process: how to know what to publish, how to know where
       to publish it (under what name), how to publish it, how to secure its publication, and how
       to maintain the information once published.</t>
 
       <section title="What to publish">
 	<t>We refer to the message that services using the DNSSD Registration Protocol send
-	as a Registration.   Four types of updates can appear in a Registration: Service Name updates,
-	Service Instance Name updates, Forward Mapping updates and Inverse Mapping updates.
+	as a Registration.
+	Three types of updates appear in a Registration:
+	Service Discovery records,
+	Service Description records,
+	Host Description records.
 	<list style="symbols">
-	  <t>Service Name (<xref target="RFC6763"/> section 4.1.1) updates contain a PTR RRset
-	  update with one or more (typically one) PTR RRs, each of which points to a Service
-	  Instance Name that is included in the Registration.  Service Name updates do not
-	  update any other type of RR.</t>
-	  <t>Service Instance Name (<xref target="RFC6763"/> section 4.1.2) updates contain
-	  exactly one SRV RR, and one or more TXT RRs.  They do not update any other RR type.
-	  Every Service Instance Name update in a Registration MUST be referenced by at least
-	  one PTR RR update in that Registration.</t>
-	  <t>Forward Mapping updates contain an update to either an A or an AAAA RR, and an update to a
-	  KEY RR.</t>
-	  <t>Inverse Mapping updates contain an update to a PTR RR.  The PTR RR in an Inverse
-	  Mapping update MUST reference the name of a Forward Mapping update.  Inverse Mappings for IP
-	  addresses are typically stored on subdomain names of the "IN-ADDR.ARPA" domain (<xref
-	  target="RFC1034"/> section 3.3) for IPv4 addresses or the "IP6.ARPA" domain (<xref
-	  target="RFC3152"/>).  However, Updates are required to be to a single zone, and
-	  indeed a site may choose to use some mapping other than the default.  Therefore,
-	  Inverse Mapping updates use ".local" instead of ".arpa".  So for example the name of a
-	  reverse entry for an IPv4 address will look like: "1.2.0.192.in-addr.local".  The name
-	  of a reverse entry for an IPv6 address will look like:
-	  "0.f.e.d.c.b.a.9.8.7.6.5.4.3.2.1.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.local".</t>
+	  <t>Service Discovery records are one or more PTR RRs,
+	  mapping from the generic service type (or subtype)
+	  to the specific Service Instance Name.</t>
+	  <t>Service Description records are exactly one SRV RR, and one or more TXT RRs,
+	  both with the same name, the Service Instance Name (<xref target="RFC6763"/> section 4.1).
+	  In principle Service Description records can include other record types,
+	  with the same Service Instance Name, though in practice they rarely do.
+	  The Service Instance Name MUST be referenced by one or more Service Discovery PTR records,
+	  unless it is a placeholder service registration for an intentionally non-discoverable service name.</t>
+	  <t>The Host Description records for a service are a KEY RR,
+	  used to claim exclusive ownership of the service registration,
+	  and one or more RRs of type A or AAAA,
+	  giving the IPv4 or IPv6 address(es) of the host where the service resides.</t>
 	</list></t>
 	<t>RFC 6763 describes the details of what each of these types of updates contains and is
 	the definitive source for information about what to publish; the reason for mentioning
@@ -188,49 +227,28 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
       <section title="Where to publish it">
 	<t>Multicast DNS uses a single namespace, ".local", which is valid on the local link.
-	This convenience is not available for DNS-SD using the DNS protocol: the portion of the
-	DNS namespace in which services on the local network are to be published must be discovered
-	by the service before it can register itself.</t>
+	This convenience is not available for DNS-SD using the DNS protocol:
+	services must exist in some specific unicast namespace.</t>
 
-	<t>Names published using DNS-SD service registration will be published under some name
-	other than .local.  However, the process of discovering what that name is is
-	complicated, and for any given network it should always be the case that there will be
-	just one namespace in which registered names will be published.  Rather than requiring
-	the service to discover this name before issuing a registration, the service SHOULD
-	simply use the name ".local."  The DNS server that receives the registration request
-	will rewrite all instances of the terminal label ".local" to use the local registration
-	domain name.  The response to the DNS Update being used to register the service will
-	contain the rewritten names, instead of ".local".  Subsequent updates should still use
-	the ".local" domain and not the registration domain, since the registration domain may
-	change over time or when the service is physically moved to a new network.</t>
-
-	<t>This should not be taken to mean that it is not permissible for some Registrations
-	to be published under one domain, and others to be published under another.   Rather,
-	it is only REQUIRED that any given Registration be consistently published under
-	the same domain.  In other words, whatever process is used to decide which domain to
-	substitute for .local, that process must always produce the same outcome for any given
-	service.</t>
-
-	<t>So for example, a site might set up a whitelist so that known services are
-	registered in one domain, while unknown services are registered in another.   It is
-	of course permissible that when a change is made to such a whitelist, the services
-	affected by this change might then be registered in different domains: the requirement
-	for consistency is just that absent such a configuration change, the registered domain
-	will always be consistent per service.</t>
+	<t>As described above, full-featured devices are responsible for knowing
+	in what domain they should register their services.
+	Devices made for "Constrained-Node Networks" register in
+	the (proposed) special use domain name <xref target="RFC6761"/> "services.arpa",
+	and let the DNS-SD Service Registration server handle rewriting that to
+	a different domain if necessary.</t>
       </section>
 
       <section title="How to publish it">
 	<t>It is possible to issue a DNS Update that does several things at once; this means
 	that it's possible to do all the work of adding a PTR resource record to the PTR RRset
 	on the Service Name if it already exists, or creating one if it doesn't, and creating or
-	updating the Service Instance Name in a single transaction.</t>
+	updating the Service Instance Name, in a single transaction.</t>
 
 	<t>A Registration is therefore implemented as a single DNS Update message that contains
-	one or more Service Name updates, one or more Service Instance Name updates, exactly one
-	Forward Mapping update, and, optionally, one Inverse Mapping update.  The Inverse Mapping update
-	is not required because it is not used for service discovery, but may be useful for
-	debugging, or for associating an IP address with the public key in the KEY record
-	included in the Forward Mapping update.</t>
+	a service's
+	Service Discovery records,
+	Service Description records, and
+	Host Description records.</t>
 
 	<t>Updates done according to this specification are somewhat different than regular DNS
 	Updates as defined in RFC2136.  RFC2136 assumes that updating is a fairly heavyweight
@@ -244,58 +262,24 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	are implicit in the processing of Registrations, and so there is no need for the
 	service sending the Registration to put in any explicit constraints.</t>
 
-	<t>There are two ways of sending Registrations.  The first is to use UDP Anycast.  The
-	update is sent to port 53 on ANYCAST_IPv4 and/or ANYCAST_IPv6.  The second way is to
-	discover the default registration domain, discover the DNS Update server to use for that
-	zone, and then make a TCP connection to that server and send the update using DNS over
-	TCP.</t>
-
-	<t>Hosts connected to LLNs should use ANYCAST_IPv6.  Hosts that are not connected to
-	LLNs should attempt both anycast addresses, if both protocols are available, and also
-	attempt to do the update using TCP.  LLNs are assumed to provide anycast Registration
-	Protocol service using UDP over IPv6; other networks may or may not support Anycast
-	registration, but are assumed, if they support registration at all, to at least support
-	updating over TCP.</t>
-
-	<t>The reason for these different assumptions is that LLNs generally require special
-	egress support, and Anycast packets captured at the LLN interface of the egress can be
-	assumed to have originated locally.  Low-power devices that typically use LLNs may
-	have very limited battery power, and so the additional DNS lookups required to discover
-	a registration server and then communicate with it using TCP will dramatically increase
-	the power required to advertise a service.</t>
-
-	<t>Non-LLN networks have the potential to have more complicated topologies at the
-	Internet layer, which makes Anycast routing more difficult.  Such networks may or may
-	not have the infrastructure required to route Anycast to a server that can process it.
-	However, they can be assumed to be able to provide registration domain discovery and
-	routing.  By requiring the use of TCP, the possibility of off-network spoofing is
-	eliminated.</t>
-
-	<t>How hosts on non-LLN networks should order their update attempts is up to the
-	implementation, and should be based on that implementation's anticipated use cases.
-	It is out of scope for this document to speculate in detail about how this tradeoff
-	will be made.   However, such hosts MUST attempt both TCP and Anycast UDP updates
-	in some order, or may do both at the same time.</t>
-
-	<t>Although the standard DNSSD discovery process is followed when discovering the
-	server to which to send updates, the updates should still be to the ".local" zone,
-	and not to the advertized default registration zone.   The default registration
-	zone is merely used to locate the correct SRV record to use when sending the update.</t>
-
-	<section anchor="reg_discover" title="Discovering the Registration domain and server">
-	  <t>The discovery process for the default registration domain
-	  (dr._dns_sd._udp.&lt;domain&gt;) is detailed in <xref target="RFC6763"/> section 11.
-	  In order to discover where to send the update, the service should look for an SRV
-	  record under _dns-update._udp.&lt;zone&gt;, where "zone" is the default registration
-	  zone.</t>
+	<section title="How DNS-SD Service Registration differs from standard RFC2136 DNS Update">
+	  <t>DNS-SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
+        <list style="symbols">
+          <t>It implements first-come first-served name allocation, protected using SIG(0).</t>
+          <t>It enforces policy about what updates are allowed.</t>
+          <t>It optionally performs rewriting of "services.arpa" to some other domain.</t>
+          <t>It optionally performs automatic population of the address-to-name reverse mapping domains.</t>
+          <t>A DNS-SD Service Registration server is not required to implement general DNS Update prerequsite processing.</t>
+          <t>Simplified clients are allowed to send updates to an anycast address, for names ending in "services.arpa"</t>
+        </list></t>
 	</section>
 
-	<section title="Testing using RFC2136-capable non-conforming servers">
+	<section title="Testing using standard RFC2136-compliant servers">
 	  <t>It may be useful to set up a DNS server for testing that does not implement the
 	  Registration protocol.  This can be done by configuring the server to listen on
-	  ANYCAST_IPv4 and/or ANYCAST_IPv6, or advertising it as described in <xref
-	  target="reg_discover"/>.  It must be configured to be authoritative for ".local", and
-	  to accept updates from hosts on local networks for names under ".local" without
+	  the anycast address, or advertising it in the _dns-update._udp record.
+	  It must be configured to be authoritative for "services.arpa", and
+	  to accept updates from hosts on local networks for names under "services.arpa" without
 	  authentication.</t>
 
 	  <t>A server configured in this way will be able to successfully accept and process
@@ -305,10 +289,10 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  claim the same name(s), from overwriting each other.</t>
 	</section>
 
-	<section title="How to allow services to update non-conforming RFC2136 servers">
+	<section title="How to allow services to update standard RFC2136-compliant servers">
 	  <t>Ordinarily Registrations will fail when sent to any non-Registration Protocol
-	  server because the zone being updated is ".local", and no DNS server should normally
-	  be configured to be authoritative for "local."  Therefore, a service that sends a
+	  server because the zone being updated is "services.arpa", and no DNS server should normally
+	  be configured to be authoritative for "services.arpa".  Therefore, a service that sends a
 	  Registration can tell that the receiving server does not support the Registration
 	  Protocol but does support RFC2136 because the RCODE will either be NOTZONE, NOTAUTH or
 	  REFUSED, or because there is no response to the update request (when using the anycast
@@ -316,8 +300,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 	  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
 	  updates. To do so, it must discover default registration zone and the DNS server
-	  designated to receive updates for that zone, as described earlier in <xref
-	  target="reg_discover"/>.  It can then make the update using the port and host pointed
+	  designated to receive updates for that zone, as described earlier using the _dns-update._udp record.
+	  It can then make the update using the port and host pointed
 	  to by the SRV record, and should use appropriate constraints to avoid overwriting
 	  competing records.  Such updates are out of scope for the DNSSD Registration Protocol,
 	  and a service that implements the DNSSD Registration Protocol MUST first attempt to
@@ -350,7 +334,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    MUST be pre-configured with a public/private key pair that can be used.</t>
 
 	    <t>When sending DNS updates, the service includes a KEY record containing the public
-	    portion of the key in each Forward Mapping update.  The update is signed using SIG(0), using
+	    portion of the key in each Host Description update.  The update is signed using SIG(0), using
 	    the private key that corresponds to the public key in the KEY record.</t>
 
 	    <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV, A, AAAA and TXT
@@ -366,60 +350,50 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    <t>This way, even if a device is unplugged from the network for a few days,
 	    and its services are not available for that time, no other rogue device
 	    can come along and immediately claim its name the moment it disappears
-	    from the network, and yet the name is eventually cleaned up and made available for
+	    from the network.
+	    In the event that a device is unplugged from the network and permanently discarded,
+	    then its name is eventually cleaned up and made available for
 	    re-use.</t>
 	  </section>
 	</section>
 
 	<section anchor="server_behavior" title="Registration Server Behavior">
 	  <t>The Registration server checks each update in the Registration to see that it is
-	  either a Service Name update, a Service Instance Name update, a Forward Mapping
-	  update, or a Reverse Mapping update.</t>
-
-	  <t>An update is a Service Name update if
+	  either a
+	  a Service Discovery update,
+	  a Service Description update, or
+	  a Host Description update.</t>
+<?rfc subcompact="yes" ?>
+	  <t>An update is a Service Discovery update if it contains
 	  <list style="symbols">
-	    <t>it contains exactly one RRset update,</t>
+	    <t>exactly one RRset update,</t>
 	    <t>which is for a PTR RR,</t>
 	    <t>which points to a Service Instance Name</t>
 	    <t>for which an update is present in the Registration.</t>
 	  </list></t>
 
-	  <t>An update is a Service Instance Name update if
+	  <t>An update is a Service Description update if, for the appropriate Service Instance Name, it contains
 	  <list style="symbols">
-	    <t>it contains exactly one SRV RRset delete,</t>
+	    <t>exactly one "Delete all RRsets from a name" update,</t>
 	    <t>exactly one SRV RRset update,</t>
-	    <t>exactly one TXT RRset delete,</t>
-	    <t>zero or more TXT RRset updates,</t>
-	    <t>no other RRset updates,</t>
-	    <t>no other RRset deletes,</t>
-	    <t>the SRV record points to a Forward Mapping for which there is an update in
-	    the Registration.</t>
+	    <t>one or more TXT RRset updates,</t>
+	    <t>and the target of the SRV record update references a hostname for which
+	    there is a Host Description update in the Registration.</t>
 	  </list></t>
 
-	  <t>An update is a Forward Mapping update if
+	  <t>An update is a Host Description update if, for the appropriate hostname, it contains
 	  <list style="symbols">
-	    <t>it contains either an A or AAAA RRset delete (according to the address family
-	    of the source IP address of the Registration message),</t>
-	    <t>an A or AAAA RR update with the source IP address of the Registration
-	    message,</t>
+	    <t>exactly one "Delete all RRsets from a name" update,</t>
+	    <t>A or AAAA RR update(s)</t>
 	    <t>a KEY RR update that adds a KEY RR that contains the public key corresponding to the
 	    private key that was used to sign the message,</t>
 	    <t>there is a Service Instance Name update in the Registration that updates an
-	    SRV RR so that it points to the name being updated by this update.</t>
+	    SRV RR so that it points to the hostname being updated by this update.</t>
 	  </list></t>
-
-	  <t>An update is a Reverse Mapping update if
-	  <list style="symbols">
-	    <t>it updates a name that is the reverse mapping name for the source IP address
-	    (IPv4 or IPv6) of the Registration message,</t>
-	    <t>it includes one PTR RRset delete,</t>
-	    <t>it includes one RRset update for a PTR record, and</t>
-	    <t>the Registration message includes a Forward Mapping update for the name to
-	    which the PTR record points.</t>
-	  </list></t>
+<?rfc subcompact="no" ?>
 
 	  <t>A Registration MUST include at least one Service Name update, at least one Service
-	  Instance Name update, and exactly one Forward Mapping update.  An update message that
+	  Instance Name update, and exactly one Host Description update.  An update message that
 	  does not is not a Registration.  An update message that contains any other updates, or
 	  any update constraints, is not a Registration.  Such messages should either be
 	  processed as regular RFC2136 updates, including access control checks and constraint
@@ -433,13 +407,13 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  update.</t>
 
 	  <t>Assuming that an update message has been validated with these conditions and is a
-	  valid Registration, the server checks that the name in the Forward Mapping update
+	  valid Registration, the server checks that the name in the Host Description update
 	  exists.  If so, then the server checks to see if the KEY record on the name is the
 	  same as the KEY record in the update.  If it is not, then the DNS Update is rejected
 	  with the YXDOMAIN RCODE.</t>
 
 	  <t>Otherwise, the server validates the update using SIG(0) on the public key in the
-	  KEY record of the Forward Mapping update.  If the validation fails, the update is
+	  KEY record of the Host Description update.  If the validation fails, the update is
 	  rejected with REFUSED.  Otherwise, the update is considered valid and authentic, and
 	  is processed according to the method described in RFC2136.  The status that is
 	  returned depends on the result of processing the update.</t>
@@ -481,8 +455,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 	  <t>The reasoning behind the different lease times is discussed in the section on first-come,
 	  first-served naming <xref target="fcfs"/>.   DNS-SD Registration Protocol servers may be configured
-	  with limits for these values.   A default limit of two hours for the Update Lease and 30 days for the
-	  Instance Lease are currently thought to be good choices.   Clients that are going to continue to use
+	  with limits for these values.   A default limit of two hours for the Update Lease and 14 days for the
+	  SIG(0) KEY are currently thought to be good choices.   Clients that are going to continue to use
 	  names on which they hold leases should update well before the lease ends, in case the registration
 	  service is unavailable or under heavy load.</t>
 
@@ -534,7 +508,6 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       </section>
     </section>
 
-
     <section title="Security Considerations">
       <t>DNS-SD Service Registration Protocol updates have no authorization semantics other than
       first-come, first-served.   This means that if an attacker from outside of the administrative
@@ -579,8 +552,11 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.3007" ?>
       <?rfc include="reference.RFC.3152" ?>
       <?rfc include="reference.RFC.6760" ?>
+      <?rfc include="reference.RFC.6761" ?>
       <?rfc include="reference.RFC.6762" ?>
+      <?rfc include="reference.RFC.7228" ?>
       <?rfc include="reference.I-D.ietf-dnssd-hybrid"?>
+      <?rfc include="reference.I-D.ietf-dnssd-push"?>
       <?rfc include="reference.I-D.sekar-dns-ul" ?>
       <?rfc include="reference.I-D.cheshire-dnssd-roadmap" ?>
       <?rfc include="reference.I-D.cheshire-edns0-owner-option" ?>
