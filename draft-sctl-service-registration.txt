@@ -141,7 +141,7 @@ Internet-Draft        Service Registration Protocol            July 2018
    and PTR records describing their service(s).  For these names they
    then discover the zone apex of the closest enclosing DNS zone using
    SOA queries [I-D.ietf-dnssd-push].  Having discovered the enclosing
-   DNS zone, they query for the "_dns-update._udp.<zone>" SRV record to
+   DNS zone, they query for the "_dns-update._udp<zone>" SRV record to
    discover the server to which they should send DNS updates.
 
    For devices designed for "Constrained-Node Networks" [RFC7228] some
@@ -313,7 +313,7 @@ Internet-Draft        Service Registration Protocol            July 2018
    It may be useful to set up a DNS server for testing that does not
    implement the Registration protocol.  This can be done by configuring
    the server to listen on the anycast address, or advertising it in the
-   _dns-update._udp.  SRV record.  It must be configured to be
+   _dns-update._udp SRV record.  It must be configured to be
    authoritative for "services.arpa", and to accept updates from hosts
    on local networks for names under "services.arpa" without
    authentication.
