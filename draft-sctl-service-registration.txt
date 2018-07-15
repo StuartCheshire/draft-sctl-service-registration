@@ -751,7 +751,7 @@ Authors' Addresses
 
    Stuart Cheshire
    Apple Inc.
-   1 Infinite Loop
+   One Apple Park Way
    Cupertino, California  95014
    USA
 
