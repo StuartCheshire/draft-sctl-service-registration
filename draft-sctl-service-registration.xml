@@ -120,12 +120,12 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       then select a service from among those that are available and obtain the information
       required to use it.</t>
 
-      <t>The DNS-SD Service Registration Protocol (SRP), described in this document, provides a
+      <t>The Service Registration Protocol for DNS-SD (SRP), described in this document, provides a
       reasonably secure mechanism for publishing this information.  Once published, these
       services can be readily discovered by clients using standard DNS lookups.</t>
 
-      <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref> Section
-      10 “Populating the DNS with Information” briefly discusses ways that services can publish
+      <t>The <xref target="RFC6763">DNS-SD specification</xref>, Section
+      10 (“Populating the DNS with Information”), briefly discusses ways that services can publish
       their information in the DNS namespace.  In the case of mDNS, it allows services to publish their information on the
       local link, using names in the ".local" namespace, which makes their
       services directly discoverable by peers attached to that same local link.</t>
@@ -279,7 +279,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<section title="How DNS-SD Service Registration differs from standard RFC2136 DNS Update">
 	  <t>DNS-SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
         <list style="symbols">
-          <t>It implements first-come first-served name allocation, protected using SIG(0).</t>
+          <t>It implements first-come first-served name allocation, protected using SIG(0) <xref target="RFC2931"/>.</t>
           <t>It enforces policy about what updates are allowed.</t>
           <t>It optionally performs rewriting of "services.arpa" to some other domain.</t>
           <t>It optionally performs automatic population of the address-to-name reverse mapping domains.</t>
@@ -294,7 +294,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  the anycast address, or advertising it in the _dns-update._udp SRV record.
 	  It must be configured to be authoritative for "services.arpa", and
 	  to accept updates from hosts on local networks for names under "services.arpa" without
-	  authentication.</t>
+	  authentication, since such servers will not have support for FCFS authentication <xref target="fcfs"/>.</t>
 
 	  <t>A server configured in this way will be able to successfully accept and process
 	  SRP updates from services that send SRP updates.  However, no constraints will be
@@ -314,7 +314,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  response to the update request (when using the anycast address)</t>
 
 	  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
-	  updates. To do so, it must discover default registration zone and the DNS server
+	  updates. To do so, it must discover the default registration zone and the DNS server
 	  designated to receive updates for that zone, as described earlier using the _dns-update._udp SRV record.
 	  It can then make the update using the port and host pointed
 	  to by the SRV record, and should use appropriate constraints to avoid overwriting
@@ -377,7 +377,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>The SRP server checks each update in the SRP update to see that it contains
 	  a Service Discovery update,
 	  a Service Description update, and
-	  a Host Description update.</t>
+	  a Host Description update.
+	  Order matters in DNS updates.  Specifically, deletes must precede adds for records that the deletes
+	  would affect; otherwise the add will have no effect.</t>
 <?rfc subcompact="yes" ?>
 	  <t>An update is a Service Discovery update if it contains
 	  <list style="symbols">
@@ -407,7 +409,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  </list></t>
 <?rfc subcompact="no" ?>
 
-	  <t>An SRP update MUST include at least one Service Name update, at least one Service
+	  <t>An SRP update MUST include at least one Service Discovery update, at least one Service
 	  Description update, and exactly one Host Description update.  An update message that
 	  does not is not an SRP update.  An update message that contains any other updates, or
 	  any update constraints, is not an SRP update.  Such messages should either be
@@ -479,7 +481,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	Discovery records, the server MUST use the same TTL on all RRs in the RRset.
 	How this consistency is enforced is up to the implementation.</t>
 
-	<t>SRP servers SHOULD ensure that TTLs are reasonable: neither
+	<t>TTLs sent in SRP updates are advisory: they indicate the client's guess as to what
+	a good TTL would be.   SRP servers may override these TTLS.
+	SRP servers SHOULD ensure that TTLs are reasonable: neither
 	too long nor too short.  The TTL should never be longer than the lease time
 	<xref target="stale"/>.   Shorter TTLs will result in more frequent data refreshes;
 	this increases latency on the client side, and increases load on any caching resolvers
@@ -602,6 +606,24 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     </section>
     <section title="Privacy Considerations">
     </section>
+
+    <section anchor="delegation" title="Delegation of 'services.arpa.'">
+      <t>In order to be fully functional, there must be a delegation of 'services.arpa.' in the
+      '.arpa.' zone <xref target="RFC3172"/>. This delegation should be set up as was done for
+      'home.arpa', as a result of the specification in <xref target="RFC8375"/>Section 7.</t>
+    </section>
+
+    <section title="IANA Considerations">
+      <t>
+	IANA is requested to record the domain name 'services.arpa.' in the Special-Use Domain Names registry
+	<xref target="SUDN"/>. IANA is requested, with the approval of IAB, to implement the delegation requested in
+	<xref target="delegation"/>.</t>
+
+	<t>IANA is further requested to add a new entry to the "Transport-Intependent Locally-Served Zones" subregistry of the
+	the "Locally-Served DNS Zones" registry<xref target="LSDZ"/>.  The entry will of for 'services.arpa.' with the
+	description "DNS-SD Registration Protocol Special-Use Domain", listing this document as the reference.</t>
+    </section>
+
     <section title="Acknowledgments">
       <t>Thanks to Toke Høiland-Jørgensen for a thorough technical review, to Tamara Kemper for
       doing a nice developmental edit, Tim Wattenberg for doing a service implementation at the
@@ -616,7 +638,23 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.6763" anchor="RFC6763" ?>
       <?rfc include="reference.I-D.sekar-dns-ul" ?>
       <?rfc include="reference.RFC.2132" ?>
+      <?rfc include="reference.RFC.3172" ?>
       <?rfc include="reference.RFC.8106" ?>
+      <?rfc include="reference.RFC.8375" ?>
+      <reference anchor="SUDN" target="https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml">
+	<front>
+	  <title>Special-Use Domain Names Registry</title>
+	  <author/>
+	  <date month="July" year="2012"/>
+	</front>
+      </reference>
+      <reference anchor="LSDZ" target="https://www.iana.org/assignments/locally-served-dns-zones/locally-served-dns-zones.xhtml">
+	<front>
+	  <title>Locally-Served DNS Zones Registry</title>
+	  <author/>
+	  <date month="July" year="2011"/>
+	</front>
+      </reference>
     </references>
 
     <references title="Informative References">
