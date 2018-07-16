@@ -149,17 +149,27 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
       <t>Services that implement the DNS-SD Service Registration Protocol use DNS Update
       <xref target="RFC2136"/> <xref target="RFC3007"/> to publish service information in the DNS.
-      Two variants exist, one for full-featured devices,
+      Two variants exist, one for full-featured hosts,
       and one for devices designed for "Constrained-Node Networks" <xref target="RFC7228"/>.</t>
 
-      <t>Full-featured devices are either configured manually,
-      or use the "dr._dns-sd._udp" query (<xref target="RFC6763"/> Section 11)
+      <t>Full-featured hosts are either configured manually with a registration domain,
+      or use the "dr._dns-sd._udp.&lt;domain&gt;" query (<xref target="RFC6763"/> Section 11)
       to learn the default registration domain from the network.
-      Manual configuration can be done either by querying the list of available registration
+      RFC6763 says to discover the registration domain using either ".local" or a network-supplied
+      domain name for &lt;domain&gt;.  Services using the Service Registration Protocol MUST use
+      the domain name received through the DHCPv4 Domain Name option (<xref target="RFC2132"/> section 3.17),
+      if available, or the Neighbor Discovery DNS Search List option <xref target="RFC8106"/>.
+      If the DNS Search List option contains more than one domain name, it MUST NOT be used.
+      If neither option is available, the Service Registration protocol is not available on
+      the local network.</t>
+
+      <t>Manual configuration of the registraton domain can be done either by querying the list
+      of available registration
       zones ("r._dns-sd._udp") and allowing the user to select one from the UI, or by any other
       means appropriate to the particular use case being addressed.
       Full-featured devices construct
-      the names of the SRV, TXT, and PTR records describing their service(s) as subdomains of the chosen service registration domain.
+      the names of the SRV, TXT, and PTR records describing their service(s) as subdomains of
+      the chosen service registration domain.
       For these names they then discover the zone apex of the closest enclosing DNS zone
       using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
       Having discovered the enclosing DNS zone, they query for the "_dns-update._udp&lt;zone&gt;" SRV record
@@ -469,10 +479,14 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<t>Additionally, when adding RRs to an RRset, for example when processing Service
 	Discovery records, the server MUST use the same TTL on all RRs in the RRset.
 	How this consistency is enforced is up to the implementation.</t>
+
+	<t>Service Registration servers SHOULD ensure that TTLs are reasonable: neither
+	too long nor too short.  The TTL should never be longer than the lease time
+	<xref target="stale"/>.</t>
       </section>
 
       <section title="Maintenance">
-	<section title="Cleaning up stale data">
+	<section title="Cleaning up stale data" anchor="stale">
 	  <t>Because the DNS-SD registration protocol is automatic, and not managed by humans,
 	  some additional bookkeeping is required.  When an update is constructed by the client,
 	  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.
@@ -597,6 +611,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     <references title="Normative References">
       <?rfc include="reference.RFC.6763" anchor="RFC6763" ?>
       <?rfc include="reference.I-D.sekar-dns-ul" ?>
+      <?rfc include="reference.RFC.2132" ?>
+      <?rfc include="reference.RFC.8106" ?>
     </references>
 
     <references title="Informative References">
