@@ -84,7 +84,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     <keyword>I-D</keyword>
     <keyword>Internet-Draft</keyword>
     <abstract>
-      <t>The DNS-SD Service Registration Protocol uses the standard DNS Update mechanism to
+      <t>The Service Registration Protocol for DNS-Based Service Discovery uses the standard DNS Update mechanism to
       enable DNS-Based Service Discovery using only unicast packets.  This eliminates the
       dependency on Multicast DNS as the foundation layer, which greatly improves scalability
       and improves performance on networks where multicast service is not an optimal choice,
@@ -103,7 +103,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
       <t>This document describes an enhancement to <xref target="RFC6763">DNS-Based Service
       Discovery</xref> that allows services to automatically register their services using the
-      DNS protocol rather than using mDNS.  There is already a large installed base of DNS-SD
+      DNS protocol rather than using <xref target="RFC6762">Multicast
+      DNS</xref> (mDNS).  There is already a large installed base of DNS-SD
       clients that can do service discovery using the DNS protocol.  This extension makes it
       much easier to take advantage of this existing functionality.</t>
 
@@ -119,14 +120,13 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       then select a service from among those that are available and obtain the information
       required to use it.</t>
 
-      <t>The DNS-SD Service Registration protocol, described in this document, provides a
+      <t>The DNS-SD Service Registration Protocol (SRP), described in this document, provides a
       reasonably secure mechanism for publishing this information.  Once published, these
       services can be readily discovered by clients using standard DNS lookups.</t>
 
       <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref> Section
       10 “Populating the DNS with Information” briefly discusses ways that services can publish
-      their information in the DNS namespace.  In the case of <xref target="RFC6762">Multicast
-      DNS</xref> (mDNS), it allows services to publish their information on the
+      their information in the DNS namespace.  In the case of mDNS, it allows services to publish their information on the
       local link, using names in the ".local" namespace, which makes their
       services directly discoverable by peers attached to that same local link.</t>
 
@@ -146,8 +146,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     </section>
 
     <section title="Service Registration Protocol">
-
-      <t>Services that implement the DNS-SD Service Registration Protocol use DNS Update
+      <t>Services that implement SRP use DNS Update
       <xref target="RFC2136"/> <xref target="RFC3007"/> to publish service information in the DNS.
       Two variants exist, one for full-featured hosts,
       and one for devices designed for "Constrained-Node Networks" <xref target="RFC7228"/>.</t>
@@ -156,7 +155,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       or use the "dr._dns-sd._udp.&lt;domain&gt;" query (<xref target="RFC6763"/> Section 11)
       to learn the default registration domain from the network.
       RFC6763 says to discover the registration domain using either ".local" or a network-supplied
-      domain name for &lt;domain&gt;.  Services using the Service Registration Protocol MUST use
+      domain name for &lt;domain&gt;.  Services using SRP MUST use
       the domain name received through the DHCPv4 Domain Name option (<xref target="RFC2132"/> section 3.17),
       if available, or the Neighbor Discovery DNS Search List option <xref target="RFC8106"/>.
       If the DNS Search List option contains more than one domain name, it MUST NOT be used.
@@ -180,9 +179,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       the (proposed) special use domain name <xref target="RFC6761"/> "services.arpa" is used.
       Instead of learning the server to which they should send DNS updates,
       a fixed IPv6 anycast address is used (value TBD).
-      It is the responsibility of a "Constrained-Node Network" supporting DNS-SD Service Registration Protocol
+      It is the responsibility of a "Constrained-Node Network" supporting SRP
       to provide appropriate anycast routing to deliver the DNS updates to the appropriate server.
-      It is the responsibility of the DNS-SD Service Registration server on a "Constrained-Node Network"
+      It is the responsibility of the SRP server on a "Constrained-Node Network"
       to handle the updates appropriately.
       In some network environments, updates may be accepted directly into a local "services.arpa" zone,
       which has only local visibility.
@@ -194,7 +193,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       egress support, and Anycast packets captured at the "Constrained-Node Network" egress can be
       assumed to have originated locally.  Low-power devices that typically use "Constrained-Node Networks" may
       have very limited battery power.   The additional DNS lookups required to discover
-      a registration server and then communicate with it will increase
+      an SRP server and then communicate with it will increase
       the power required to advertise a service; for low-power devices, the additional flexibility
       this provides does not justify the additional use of power.</t>
 
@@ -211,9 +210,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       to maintain the information once published.</t>
 
       <section title="What to publish">
-	<t>We refer to the message that services using the DNSSD Registration Protocol send
-	as a Registration.
-	Three types of updates appear in a Registration:
+	<t>We refer to the DNS Update message sent by services using SRP as an SRP update.
+	Three types of updates appear in an SRP update:
 	Service Discovery records,
 	Service Description records, and
 	Host Description records.
@@ -250,7 +248,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	in what domain they should register their services.
 	Devices made for "Constrained-Node Networks" register in
 	the (proposed) special use domain name <xref target="RFC6761"/> "services.arpa",
-	and let the DNS-SD Service Registration server handle rewriting that to
+	and let the SRP server handle rewriting that to
 	a different domain if necessary.</t>
       </section>
 
@@ -260,7 +258,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	on the Service Name if it already exists, or creating one if it doesn't, and creating or
 	updating the Service Instance Name and Host Description in a single transaction.</t>
 
-	<t>A Registration is therefore implemented as a single DNS Update message that contains
+	<t>An SRP update is therefore implemented as a single DNS Update message that contains
 	a service's
 	Service Discovery records,
 	Service Description records, and
@@ -273,10 +271,10 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	Because the registration protocol uses a single transaction, some of this adaptability
 	is lost.</t>
 
-	<t>In order to allow updates to happen in a single transaction, Registrations do not
+	<t>In order to allow updates to happen in a single transaction, SRP updates do not
 	include update constraints.   The constraints specified in <xref target="server_behavior"/>
-	are implicit in the processing of Registrations, and so there is no need for the
-	service sending the Registration to put in any explicit constraints.</t>
+	are implicit in the processing of SRP updates, and so there is no need for the
+	service sending the SRP update to put in any explicit constraints.</t>
 
 	<section title="How DNS-SD Service Registration differs from standard RFC2136 DNS Update">
 	  <t>DNS-SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
@@ -285,32 +283,33 @@ Check output with <http://tools.ietf.org/tools/idnits/>
           <t>It enforces policy about what updates are allowed.</t>
           <t>It optionally performs rewriting of "services.arpa" to some other domain.</t>
           <t>It optionally performs automatic population of the address-to-name reverse mapping domains.</t>
-          <t>A DNS-SD Service Registration server is not required to implement general DNS Update prerequsite processing.</t>
+          <t>An SRP server is not required to implement general DNS Update prerequsite processing.</t>
           <t>Simplified clients are allowed to send updates to an anycast address, for names ending in "services.arpa"</t>
         </list></t>
 	</section>
 
 	<section title="Testing using standard RFC2136-compliant servers">
-	  <t>It may be useful to set up a DNS server for testing that does not implement the
-	  Registration protocol.  This can be done by configuring the server to listen on
+	  <t>It may be useful to set up a DNS server for testing that does not implement SRP.
+	  This can be done by configuring the server to listen on
 	  the anycast address, or advertising it in the _dns-update._udp SRV record.
 	  It must be configured to be authoritative for "services.arpa", and
 	  to accept updates from hosts on local networks for names under "services.arpa" without
 	  authentication.</t>
 
 	  <t>A server configured in this way will be able to successfully accept and process
-	  Registrations from services that send Registrations.  However, no constraints will be
+	  SRP updates from services that send SRP updates.  However, no constraints will be
 	  applied, and this means that the test server will accept internally inconsistent
-	  Registrations, and will not stop two Registrations, sent by different services, that
+	  SRP updates, and will not stop two SRP updates, sent by different services, that
 	  claim the same name(s), from overwriting each other.</t>
 	</section>
 
 	<section title="How to allow services to update standard RFC2136-compliant servers">
-	  <t>Ordinarily Registrations will fail when sent to any non-Registration Protocol
-	  server because the zone being updated is "services.arpa", and no DNS server that is
-	  not a Registration Protocol server should normally be configured to be authoritative
-	  for "services.arpa".  Therefore, a service that sends a Registration can tell that the
-	  receiving server does not support the Registration Protocol, but does support RFC2136,
+	  <t>Ordinarily SRP updates will fail when sent to an RFC 2136-compliant
+	  server that does not implement SRP
+	  because the zone being updated is "services.arpa", and no DNS server that is
+	  not an SRP server should normally be configured to be authoritative
+	  for "services.arpa".  Therefore, a service that sends an SRP update can tell that the
+	  receiving server does not support SRP, but does support RFC2136,
 	  because the RCODE will either be NOTZONE, NOTAUTH or REFUSED, or because there is no
 	  response to the update request (when using the anycast address)</t>
 
@@ -319,9 +318,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  designated to receive updates for that zone, as described earlier using the _dns-update._udp SRV record.
 	  It can then make the update using the port and host pointed
 	  to by the SRV record, and should use appropriate constraints to avoid overwriting
-	  competing records.  Such updates are out of scope for the DNSSD Registration Protocol,
-	  and a service that implements the DNSSD Registration Protocol MUST first attempt to
-	  use the Registration Protocol to register itself, and should only attempt to use
+	  competing records.  Such updates are out of scope for SRP,
+	  and a service that implements SRP MUST first attempt to
+	  use SRP to register itself, and should only attempt to use
 	  RFC2136 backwards compatibility if that fails.</t>
 	</section>
       </section>
@@ -374,8 +373,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  </section>
 	</section>
 
-	<section anchor="server_behavior" title="Registration Server Behavior">
-	  <t>The Registration server checks each update in the Registration to see that it contains
+	<section anchor="server_behavior" title="SRP Server Behavior">
+	  <t>The SRP server checks each update in the SRP update to see that it contains
 	  a Service Discovery update,
 	  a Service Description update, and
 	  a Host Description update.</t>
@@ -385,7 +384,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    <t>exactly one RRset update,</t>
 	    <t>which is for a PTR RR,</t>
 	    <t>which points to a Service Instance Name</t>
-	    <t>for which an update is present in the Registration.</t>
+	    <t>for which an update is present in the SRP update.</t>
 	  </list></t>
 
 	  <t>An update is a Service Description update if, for the appropriate Service Instance Name, it contains
@@ -394,7 +393,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    <t>exactly one SRV RRset update,</t>
 	    <t>one or more TXT RRset updates,</t>
 	    <t>and the target of the SRV record update references a hostname for which
-	    there is a Host Description update in the Registration.</t>
+	    there is a Host Description update in the SRP update.</t>
 	  </list></t>
 
 	  <t>An update is a Host Description update if, for the appropriate hostname, it contains
@@ -403,36 +402,36 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    <t>A or AAAA RR update(s)</t>
 	    <t>a KEY RR update that adds a KEY RR that contains the public key corresponding to the
 	    private key that was used to sign the message,</t>
-	    <t>there is a Service Instance Name update in the Registration that updates an
+	    <t>there is a Service Instance Name update in the SRP update that updates an
 	    SRV RR so that it points to the hostname being updated by this update.</t>
 	  </list></t>
 <?rfc subcompact="no" ?>
 
-	  <t>A Registration MUST include at least one Service Name update, at least one Service
+	  <t>An SRP update MUST include at least one Service Name update, at least one Service
 	  Description update, and exactly one Host Description update.  An update message that
-	  does not is not a Registration.  An update message that contains any other updates, or
-	  any update constraints, is not a Registration.  Such messages should either be
+	  does not is not an SRP update.  An update message that contains any other updates, or
+	  any update constraints, is not an SRP update.  Such messages should either be
 	  processed as regular RFC2136 updates, including access control checks and constraint
 	  checks, if supported, or else rejected with RCODE=REFUSED.</t>
 
 	  <t>Note that if the definitions of each of these update types are followed carefully,
-	  this means that many things that look very much like Registrations nevertheless are
-	  not.  For example, a Registration that contains an update to a Service Name and an
+	  this means that many things that look very much like SRP updates nevertheless are
+	  not.  For example, a DNS update that contains an update to a Service Name and an
 	  update to a Service Instance Name, where the Service Name does not reference the
-	  Service Instance Name, is not a valid Registration message, but may be a valid RFC2136
+	  Service Instance Name, is not a valid SRP update message, but may be a valid RFC2136
 	  update.</t>
 
 	  <t>Assuming that an update message has been validated with these conditions and is a
-	  valid Registration, the server checks that the name in the Host Description update
+	  valid SRP update, the server checks that the name in the Host Description update
 	  exists.  If so, then the server checks to see if the KEY record on the name is the
 	  same as the KEY record in the update.  If it is not, then the server MUST reject
-	  the Registration
+	  the SRP update
 	  with the YXDOMAIN RCODE.</t>
 
-	  <t>Otherwise, the server validates the update using SIG(0) on the public key in the
+	  <t>Otherwise, the server validates the SRP update using SIG(0) on the public key in the
 	  KEY record of the Host Description update.  If the validation fails, the server MUST
-	  reject the rejectration
-	  rejected with the REFUSED RCODE.  Otherwise, the update is considered valid and authentic, and
+	  reject the
+	  SRP Update with the REFUSED RCODE.  Otherwise, the SRP update is considered valid and authentic, and
 	  is processed according to the method described in RFC2136.  The status that is
 	  returned depends on the result of processing the update.</t>
 
@@ -451,8 +450,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  registration protocol includes maintenance functionality not present with normal DNS
 	  updates.</t>
 	  
-	  <t>Note that the semantics of using the Registration Protocol in this way are different than
-	  for typical RFC2136 implementations: the KEY used to sign the update in the Registration Protocol
+	  <t>Note that the semantics of using SRP in this way are different than
+	  for typical RFC2136 implementations: the KEY used to sign the SRP update
 	  only allows the client to update records that refer to its Host Description.   RFC2136
 	  implementations do not normally provide a way to enforce a constraint of this type.</t>
 
@@ -465,24 +464,29 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <section title="TTL Consistency">
 	<t>All RRs within an RRset are required to have the same TTL
 	(<xref target="RFC2181">Clarifications to the DNS Specification</xref>, Section 5.2).
-	In order to avoid inconsistencies, the Registration Protocol places restrictions
-	on TTLs sent by services and requires that Registration Protocol Servers enforce
+	In order to avoid inconsistencies, SRP places restrictions
+	on TTLs sent by services and requires that SRP Servers enforce
 	consistency.</t>
 
-	<t>Services sending Registrations MUST use consistent TTLs in all RRs within the
-	Registration.</t>
+	<t>Services sending SRP updates MUST use consistent TTLs in all RRs within the
+	SRP update.</t>
 
-	<t>Registration Protocol servers MUST check that the TTLs for all RRs within
-	the Registration are the same.   If they are not, the Registration MUST be rejected
+	<t>SRP update servers MUST check that the TTLs for all RRs within
+	the SRP update are the same.   If they are not, the SRP update MUST be rejected
 	with a REFUSED RCODE.</t>
 
 	<t>Additionally, when adding RRs to an RRset, for example when processing Service
 	Discovery records, the server MUST use the same TTL on all RRs in the RRset.
 	How this consistency is enforced is up to the implementation.</t>
 
-	<t>Service Registration servers SHOULD ensure that TTLs are reasonable: neither
+	<t>SRP servers SHOULD ensure that TTLs are reasonable: neither
 	too long nor too short.  The TTL should never be longer than the lease time
-	<xref target="stale"/>.</t>
+	<xref target="stale"/>.   Shorter TTLs will result in more frequent data refreshes;
+	this increases latency on the client side, and increases load on any caching resolvers
+	and on the authoritative server.   Longer TTLs will increase the likelihood that data
+	in caches will be stale.   TTL minimums and maximums SHOULD be configurable by the
+	operator of the SRP server.
+	</t>
       </section>
 
       <section title="Maintenance">
@@ -501,13 +505,13 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  which the KEY record should be assumed to be valid.</t>
 
 	  <t>The reasoning behind the different lease times is discussed in the section on first-come,
-	  first-served naming <xref target="fcfs"/>.   DNS-SD Registration Protocol servers may be configured
+	  first-served naming <xref target="fcfs"/>.   SRP servers may be configured
 	  with limits for these values.   A default limit of two hours for the Update Lease and 14 days for the
 	  SIG(0) KEY are currently thought to be good choices.   Clients that are going to continue to use
 	  names on which they hold leases should update well before the lease ends, in case the registration
 	  service is unavailable or under heavy load.</t>
 
-	  <t>The Registration Protocol server MUST include an EDNS(0) Update Lease option in the
+	  <t>The SRP server MUST include an EDNS(0) Update Lease option in the
 	  response if the lease time proposed by the service has been shortened.  The service
 	  MUST check for the EDNS(0) Update Lease option in the response and MUST use the lease
 	  times from that option in place of the options that it sent to the server when
@@ -519,11 +523,11 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  the server will always receive the update after the client sent it, this avoids the
 	  possibility of misunderstandings.</t>
 
-	  <t>DNS-SD Registration Protocol servers MUST reject updates that do not include an
+	  <t>SRP servers MUST reject updates that do not include an
 	  EDNS(0) Update Lease option.  Dual-use servers MAY accept updates that don't include
-	  leases, but SHOULD differentiate between DNS-SD registration protocol updates and
-	  other updates, and MUST reject updates that are known to be DNS-SD Registration
-	  Protocol updates if they do not include leases.</t>
+	  leases, but SHOULD differentiate between SRP updates and
+	  other updates, and MUST reject updates that are known to be SRP updates
+	  updates if they do not include leases.</t>
 
 	  <t>Lease times have a completely different function than TTLs.  On an authoritative
 	  DNS server, the TTL on a resource record is a constant: whenever that RR is served in
@@ -532,7 +536,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  delete stale records.</t>
 	</section>
 	<section title="Sleep Proxy">
-	  <t>Another use of Service Registration Protocol is for devices
+	  <t>Another use of SRP is for devices
 	  that sleep to reduce power consumption.</t>
 
 	  <t>In this case, in addition to the
@@ -550,7 +554,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
 	  and will not be receptive to normal network traffic.
 	  When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
-	  that signifies that the Registration Protocol server should set up a proxy for any
+	  that signifies that the SRP server should set up a proxy for any
 	  IPv4 or IPv6 address records in the DNS Update message.
 	  This proxy should send ARP or ND messages claiming
 	  ownership of the IPv4 and/or IPv6 addresses in the records in question.
@@ -563,15 +567,15 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
 	  future versions could be extended to specify other wakeup mechanisms.</t>
 
-	  <t>Note that although the authoritative DNS server that implements the DNSSD
-	  Service Registration Protocol function need not be on the same link as the
+	  <t>Note that although the authoritative DNS server that implements the SRP
+	  function need not be on the same link as the
 	  sleeping host, the Sleep Proxy must be on the same link.</t>
 	</section>
       </section>
     </section>
 
     <section title="Security Considerations">
-      <t>DNS-SD Service Registration Protocol updates have no authorization semantics other than
+      <t>SRP updates have no authorization semantics other than
       first-come, first-served.   This means that if an attacker from outside of the administrative
       domain of the server knows the server's IP address, it can in principle send updates to the server
       that will be processed successfully.   Servers should therefore be configured to reject updates
@@ -582,19 +586,19 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       handshake prevents updates being forged from off-network.   In order to ensure that this
       handshake happens, Service Discovery Protocol servers MUST NOT accept 0-RTT TCP payloads.</t>
 
-      <t>Note that these rules only apply to the validation of DNS-SD registration
-      protocol updates.   A server that accepts updates from DNS-SD registration protocol
+      <t>Note that these rules only apply to the validation of SRP updates.
+      A server that accepts updates from DNS-SD registration protocol
       clients may also accept other DNS updates, and those DNS updates may be validated
-      using different rules.   However, in the case of a DNS service that accepts automatic
-      updates, the intersection of the DNS-SD service registration update rules and
+      using different rules.   However, in the case of a DNS service that accepts SRP
+      updates, the intersection of the SRP update rules and
       whatever other update rules are present must be considered very carefully.</t>
 
-      <t>For example, a normal, authenticated RFC2136 update to any RR that was added using the
-      Registration protocol, but that is authenticated using a different key, could be used to
+      <t>For example, a normal, authenticated RFC2136 update to any RR that was added using SRP,
+      but that is authenticated using a different key, could be used to
       override a promise made by the registration protocol, by replacing all or part of the
       service registration information with information provided by a different client.  An
       implementation that allows both kinds of updates should not allow updates to records added
-      by Registrations using different authentication and authorization credentials.</t>
+      by SRP updates using different authentication and authorization credentials.</t>
     </section>
     <section title="Privacy Considerations">
     </section>
