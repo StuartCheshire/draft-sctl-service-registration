@@ -98,10 +98,10 @@ Internet-Draft        Service Registration Protocol            July 2018
    In the DNS-Based Service Discovery specification [RFC6763] Section 10
    "Populating the DNS with Information" briefly discusses ways that
    services can publish their information in the DNS namespace.  In the
-   case of Multicast DNS [RFC6762], it allows services to publish their
-   information on the local link, using names in the ".local" namespace,
-   which makes their services directly discoverable by peers attached to
-   that same local link.
+   case of Multicast DNS [RFC6762] (mDNS), it allows services to publish
+   their information on the local link, using names in the ".local"
+   namespace, which makes their services directly discoverable by peers
+   attached to that same local link.
 
    RFC6763 also allows clients to discover services using the DNS
    protocol [RFC1035].  This can be done by having a system
@@ -135,13 +135,17 @@ Internet-Draft        Service Registration Protocol            July 2018
    devices designed for "Constrained-Node Networks" [RFC7228].
 
    Full-featured devices are either configured manually, or use the
-   "dr._dns-sd._udp" query [RFC6763] to learn the default registration
-   domain from the network.  Using the chosen service registration
-   domain, full-featured devices construct the names of the SRV, TXT,
-   and PTR records describing their service(s).  For these names they
-   then discover the zone apex of the closest enclosing DNS zone using
-   SOA queries [I-D.ietf-dnssd-push].  Having discovered the enclosing
-   DNS zone, they query for the "_dns-update._udp<zone>" SRV record to
+   "dr._dns-sd._udp" query ([RFC6763] Section 11) to learn the default
+   registration domain from the network.  Manual configuration can be
+   done either by querying the list of available registration zones
+   ("r._dns-sd._udp") and allowing the user to select one from the UI,
+   or by any other means appropriate to the particular use case being
+   addressed.  Full-featured devices construct the names of the SRV,
+   TXT, and PTR records describing their service(s) as subdomains of the
+   chosen service registration domain.  For these names they then
+   discover the zone apex of the closest enclosing DNS zone using SOA
+   queries [I-D.ietf-dnssd-push].  Having discovered the enclosing DNS
+   zone, they query for the "_dns-update._udp<zone>" SRV record to
    discover the server to which they should send DNS updates.
 
    For devices designed for "Constrained-Node Networks" [RFC7228] some
@@ -158,10 +162,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    some network environments, updates may be accepted directly into a
    local "services.arpa" zone, which has only local visibility.  In
    other network environments, updates for names ending in
-   "services.arpa" may be rewritten internally to names with broader
-   visibility.
-
-
 
 
 
@@ -169,6 +169,9 @@ Cheshire & Lemon        Expires January 15, 2019                [Page 3]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   "services.arpa" may be rewritten internally to names with broader
+   visibility.
 
    The reason for these different assumptions is that "Constrained-Node
    Networks" generally require special egress support, and Anycast
@@ -214,10 +217,7 @@ Internet-Draft        Service Registration Protocol            July 2018
       records, unless it is a placeholder service registration for an
       intentionally non-discoverable service name.
 
-   o  The Host Description records for a service are a KEY RR, used to
-      claim exclusive ownership of the service registration, and one or
-      more RRs of type A or AAAA, giving the IPv4 or IPv6 address(es) of
-      the host where the service resides.
+
 
 
 
@@ -225,6 +225,11 @@ Cheshire & Lemon        Expires January 15, 2019                [Page 4]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   o  The Host Description records for a service are a KEY RR, used to
+      claim exclusive ownership of the service registration, and one or
+      more RRs of type A or AAAA, giving the IPv4 or IPv6 address(es) of
+      the host where the service resides.
 
    RFC 6763 describes the details of what each of these types of updates
    contains and is the definitive source for information about what to
@@ -270,11 +275,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    Because the registration protocol uses a single transaction, some of
    this adaptability is lost.
 
-   In order to allow updates to happen in a single transaction,
-   Registrations do not include update constraints.  The constraints
-   specified in Section 2.4.2 are implicit in the processing of
-
-
 
 
 Cheshire & Lemon        Expires January 15, 2019                [Page 5]
@@ -282,6 +282,9 @@ Cheshire & Lemon        Expires January 15, 2019                [Page 5]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+   In order to allow updates to happen in a single transaction,
+   Registrations do not include update constraints.  The constraints
+   specified in Section 2.4.2 are implicit in the processing of
    Registrations, and so there is no need for the service sending the
    Registration to put in any explicit constraints.
 
@@ -324,9 +327,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    server will accept internally inconsistent Registrations, and will
    not stop two Registrations, sent by different services, that claim
    the same name(s), from overwriting each other.
-
-
-
 
 
 
@@ -628,6 +628,13 @@ Internet-Draft        Service Registration Protocol            July 2018
    reject updates that are known to be DNS-SD Registration Protocol
    updates if they do not include leases.
 
+   Lease times have a completely different function than TTLs.  On an
+   authoritative DNS server, the TTL on a resource record is a constant:
+   whenever that RR is served in a DNS response, the TTL value sent in
+   the answer is the same.  The lease time is never sent as a TTL; its
+   sole purpose is to determine when the authoritative DNS server will
+   delete stale records.
+
 2.6.2.  Sleep Proxy
 
    Another use of Service Registration Protocol is for devices that
@@ -658,13 +665,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    addresses for which it proxying, it should then wake up the sleeping
    device using the information in the EDNS(0) OWNER Option.  At present
    version 0 of the OWNER Option specifies the "Wake-on-LAN Magic
-   Packet" that needs to be sent; future versions could be extended to
-   specify other wakeup mechanisms.
-
-   Note that although the authoritative DNS server that implements the
-   DNSSD Service Registration Protocol function need not be on the same
-   link as the sleeping host, the Sleep Proxy must be on the same link.
-
 
 
 
@@ -673,6 +673,13 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 12]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   Packet" that needs to be sent; future versions could be extended to
+   specify other wakeup mechanisms.
+
+   Note that although the authoritative DNS server that implements the
+   DNSSD Service Registration Protocol function need not be on the same
+   link as the sleeping host, the Sleep Proxy must be on the same link.
 
 3.  Security Considerations
 
@@ -711,13 +718,6 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 4.  Privacy Considerations
 
-5.  Acknowledgments
-
-   Thanks to Toke Hoeiland-Joergensen for a thorough technical review,
-   to Tamara Kemper for doing a nice developmental edit, Tim Wattenberg
-   for doing a service implementation at the Montreal Hackathon at IETF
-   102, and [...] more reviewers to come, hopefully.
-
 
 
 
@@ -729,6 +729,14 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 13]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+5.  Acknowledgments
+
+   Thanks to Toke Hoeiland-Joergensen for a thorough technical review,
+   to Tamara Kemper for doing a nice developmental edit, Tim Wattenberg
+   for doing a service implementation at the Montreal Hackathon at IETF
+   102, Tom Pusateri for reviewing during the hackathon and afterwards,
+   and [...] more reviewers to come, hopefully.
 
 6.  References
 
@@ -769,14 +777,6 @@ Internet-Draft        Service Registration Protocol            July 2018
               ( SIG(0)s )", RFC 2931, DOI 10.17487/RFC2931, September
               2000, <https://www.rfc-editor.org/info/rfc2931>.
 
-   [RFC3007]  Wellington, B., "Secure Domain Name System (DNS) Dynamic
-              Update", RFC 3007, DOI 10.17487/RFC3007, November 2000,
-              <https://www.rfc-editor.org/info/rfc3007>.
-
-   [RFC3152]  Bush, R., "Delegation of IP6.ARPA", BCP 49, RFC 3152,
-              DOI 10.17487/RFC3152, August 2001,
-              <https://www.rfc-editor.org/info/rfc3152>.
-
 
 
 
@@ -785,6 +785,14 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 14]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   [RFC3007]  Wellington, B., "Secure Domain Name System (DNS) Dynamic
+              Update", RFC 3007, DOI 10.17487/RFC3007, November 2000,
+              <https://www.rfc-editor.org/info/rfc3007>.
+
+   [RFC3152]  Bush, R., "Delegation of IP6.ARPA", BCP 49, RFC 3152,
+              DOI 10.17487/RFC3152, August 2001,
+              <https://www.rfc-editor.org/info/rfc3152>.
 
    [RFC6760]  Cheshire, S. and M. Krochmal, "Requirements for a Protocol
               to Replace the AppleTalk Name Binding Protocol (NBP)",
@@ -826,14 +834,6 @@ Internet-Draft        Service Registration Protocol            July 2018
               Networking: The Definitive Guide", O'Reilly Media, Inc. ,
               ISBN 0-596-10100-7, December 2005.
 
-Authors' Addresses
-
-
-
-
-
-
-
 
 
 
@@ -841,6 +841,8 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 15]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+Authors' Addresses
 
    Stuart Cheshire
    Apple Inc.
@@ -859,8 +861,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    United States of America
 
    Email: mellon@fugue.com
-
-
 
 
 

@@ -126,7 +126,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <t>In the <xref target="RFC6763">DNS-Based Service Discovery specification</xref> Section
       10 “Populating the DNS with Information” briefly discusses ways that services can publish
       their information in the DNS namespace.  In the case of <xref target="RFC6762">Multicast
-      DNS</xref>, it allows services to publish their information on the
+      DNS</xref> (mDNS), it allows services to publish their information on the
       local link, using names in the ".local" namespace, which makes their
       services directly discoverable by peers attached to that same local link.</t>
 
@@ -153,10 +153,13 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       and one for devices designed for "Constrained-Node Networks" <xref target="RFC7228"/>.</t>
 
       <t>Full-featured devices are either configured manually,
-      or use the "dr._dns-sd._udp" query <xref target="RFC6763"/>
+      or use the "dr._dns-sd._udp" query (<xref target="RFC6763"/> Section 11)
       to learn the default registration domain from the network.
-      Using the chosen service registration domain, full-featured devices construct
-      the names of the SRV, TXT, and PTR records describing their service(s).
+      Manual configuration can be done either by querying the list of available registration
+      zones ("r._dns-sd._udp") and allowing the user to select one from the UI, or by any other
+      means appropriate to the particular use case being addressed.
+      Full-featured devices construct
+      the names of the SRV, TXT, and PTR records describing their service(s) as subdomains of the chosen service registration domain.
       For these names they then discover the zone apex of the closest enclosing DNS zone
       using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
       Having discovered the enclosing DNS zone, they query for the "_dns-update._udp&lt;zone&gt;" SRV record
@@ -507,6 +510,12 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  leases, but SHOULD differentiate between DNS-SD registration protocol updates and
 	  other updates, and MUST reject updates that are known to be DNS-SD Registration
 	  Protocol updates if they do not include leases.</t>
+
+	  <t>Lease times have a completely different function than TTLs.  On an authoritative
+	  DNS server, the TTL on a resource record is a constant: whenever that RR is served in
+	  a DNS response, the TTL value sent in the answer is the same.  The lease time is never
+	  sent as a TTL; its sole purpose is to determine when the authoritative DNS server will
+	  delete stale records.</t>
 	</section>
 	<section title="Sleep Proxy">
 	  <t>Another use of Service Registration Protocol is for devices
@@ -578,7 +587,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     <section title="Acknowledgments">
       <t>Thanks to Toke Høiland-Jørgensen for a thorough technical review, to Tamara Kemper for
       doing a nice developmental edit, Tim Wattenberg for doing a service implementation at the
-      Montreal Hackathon at IETF 102, and [...] more reviewers to come, hopefully.</t>
+      Montreal Hackathon at IETF 102, Tom Pusateri for reviewing during the hackathon and afterwards,
+      and [...] more reviewers to come, hopefully.</t>
     </section>
   </middle>
 
