@@ -340,9 +340,10 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>First-Come First-Serve naming provides a limited degree of security: a service that
 	  registers its service using DNS-SD Registration protocol is given ownership of a name
 	  for an extended period of time based on the key used to authenticate the DNS Update.
-	  As long as the registration service remembers the Service Instance Name and the key used
-	  to register that Service Instance Name, no other service can add or update the information
-	  associated with that Service Instance Name.</t>
+	  As long as the registration service remembers thename and the key used
+	  to register that name, no other service can add or update the information
+	  associated with that.
+	  FCFS naming is used to protect both the Service Description and the Host Description.</t>
 	  <section title="Service Behavior">
 	    <t>The service generates a public/private key pair.   This key pair MUST be stored
 	    in stable storage; if there is no writable stable storage on the client, the client
