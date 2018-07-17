@@ -219,7 +219,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>Service Discovery records are one or more PTR RRs,
 	  mapping from the generic service type (or subtype)
 	  to the specific Service Instance Name.</t>
-	  <t>Service Description records are exactly one SRV RR, and one or more TXT RRs,
+	  <t>Service Description records are exactly one SRV RR, exactly one KEY RR, and one or more TXT RRs,
 	  both with the same name, the Service Instance Name (<xref target="RFC6763"/> section 4.1).
 	  In principle Service Description records can include other record types,
 	  with the same Service Instance Name, though in practice they rarely do.
@@ -349,16 +349,21 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    MUST be pre-configured with a public/private key pair that can be used.</t>
 
 	    <t>When sending DNS updates, the service includes a KEY record containing the public
-	    portion of the key in each Host Description update.  The update is signed using SIG(0), using
+	    portion of the key in each Host Description update and each Service Description update.
+	    Each KEY record MUST contain the same public key.
+	    The update is signed using SIG(0), using
 	    the private key that corresponds to the public key in the KEY record.   The lifetimes
-	    of the records in the update is set using the EDNS(0) Update Lease option.</t>
+	    of the records in the update is set using the EDNS(0) Update Lease option
+	    <xref target="I-D.sekar-dns-ul"/>.</t>
 
 	    <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV, A, AAAA and TXT
-	    records</xref> is typically set to two hours.  This means that if a device is
-	    disconnected from the network, it does not appear in the user interfaces of devices
-	    looking for services of that type for too long.</t>
+	    records</xref> uses the LEASE field of the Update Lease option, and is typically set
+	    to two hours.  This means that if a device is disconnected from the network, it does
+	    not appear in the user interfaces of devices looking for services of that type for
+	    too long.</t>
 
-	    <t>However, the lifetime of its KEY record should be set to a much longer time,
+	    <t>The lifetime of the KEY records is set using the KEY-LEASE field of the Update Lease
+	    Option, and should be set to a much longer time,
 	    typically 14 days.  The result of this is that even though a device may be
 	    temporarily unplugged, disappearing from the network for a few days, it makes a
 	    claim on its name that lasts much longer.</t>
@@ -374,6 +379,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	</section>
 
 	<section anchor="server_behavior" title="SRP Server Behavior">
+	  <t>The SRP server first validates that the SRP update is a syntactically and semantically valid
+	  DNS Update according to the rules specified in RFC2136.</t>
+	  
 	  <t>The SRP server checks each update in the SRP update to see that it contains
 	  a Service Discovery update,
 	  a Service Description update, and
@@ -393,6 +401,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <list style="symbols">
 	    <t>exactly one "Delete all RRsets from a name" update,</t>
 	    <t>exactly one SRV RRset update,</t>
+	    <t>exactly one KEY RR update that adds a KEY RR that contains the public key corresponding to the
+	    private key that was used to sign the message,</t>
 	    <t>one or more TXT RRset updates,</t>
 	    <t>and the target of the SRV record update references a hostname for which
 	    there is a Host Description update in the SRP update.</t>
@@ -402,7 +412,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <list style="symbols">
 	    <t>exactly one "Delete all RRsets from a name" update,</t>
 	    <t>A or AAAA RR update(s)</t>
-	    <t>a KEY RR update that adds a KEY RR that contains the public key corresponding to the
+	    <t>exactly one KEY RR update that adds a KEY RR that contains the public key corresponding to the
 	    private key that was used to sign the message,</t>
 	    <t>there is a Service Instance Name update in the SRP update that updates an
 	    SRV RR so that it points to the hostname being updated by this update.</t>
@@ -426,9 +436,12 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>Assuming that an update message has been validated with these conditions and is a
 	  valid SRP update, the server checks that the name in the Host Description update
 	  exists.  If so, then the server checks to see if the KEY record on the name is the
-	  same as the KEY record in the update.  If it is not, then the server MUST reject
+	  same as the KEY record in the update.  The server performs the same check for the KEY records in
+	  any Service Description update.
+	  If any existing KEY record corresponding to a KEY record in the SRP update does not match
+	  the KEY record in the SRP update, then the server MUST reject
 	  the SRP update
-	  with the YXDOMAIN RCODE.</t>
+	  with the YXDOMAIN RCODE.  </t>
 
 	  <t>Otherwise, the server validates the SRP update using SIG(0) on the public key in the
 	  KEY record of the Host Description update.  If the validation fails, the server MUST
@@ -519,7 +532,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  response if the lease time proposed by the service has been shortened.  The service
 	  MUST check for the EDNS(0) Update Lease option in the response and MUST use the lease
 	  times from that option in place of the options that it sent to the server when
-	  deciding when to update its registration.</t>
+	  deciding when to update its registration.   The times may be shorter or longer than
+	  those specified in the SRP update; the client must honor them in either case.</t>
 	  
 	  <t>Clients should assume that each lease ends N seconds after the update was first
 	  transmitted, where N is the lease duration.  Servers should assume that each lease
