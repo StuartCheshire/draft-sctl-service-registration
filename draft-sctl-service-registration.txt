@@ -156,8 +156,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    registration domain.  For these names they then discover the zone
    apex of the closest enclosing DNS zone using SOA queries
    [I-D.ietf-dnssd-push].  Having discovered the enclosing DNS zone,
-   they query for the "_dns-update._udp<zone>" SRV record to discover
-   the server to which they should send DNS updates.
+   they query for the "_dnssd-srp._tcp<zone>" SRV record to discover the
+   server to which they should send DNS updates.
 
    For devices designed for "Constrained-Node Networks" [RFC7228] some
    simplifications are used.  Instead of being configured with (or
@@ -172,15 +172,17 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    use domain name [RFC6761] "services.arpa" is used.  Instead of
    learning the server to which they should send DNS updates, a fixed
-   IPv6 anycast address is used (value TBD).  It is the responsibility
-   of a "Constrained-Node Network" supporting SRP to provide appropriate
-   anycast routing to deliver the DNS updates to the appropriate server.
-   It is the responsibility of the SRP server on a "Constrained-Node
-   Network" to handle the updates appropriately.  In some network
-   environments, updates may be accepted directly into a local
-   "services.arpa" zone, which has only local visibility.  In other
-   network environments, updates for names ending in "services.arpa" may
-   be rewritten internally to names with broader visibility.
+   IPv6 anycast address is used (value TBD).  Anycasts are sent using
+   UDP unless TCP is required due to the size of the update.  It is the
+   responsibility of a "Constrained-Node Network" supporting SRP to
+   provide appropriate anycast routing to deliver the DNS updates to the
+   appropriate server.  It is the responsibility of the SRP server on a
+   "Constrained-Node Network" to handle the updates appropriately.  In
+   some network environments, updates may be accepted directly into a
+   local "services.arpa" zone, which has only local visibility.  In
+   other network environments, updates for names ending in
+   "services.arpa" may be rewritten internally to names with broader
+   visibility.
 
    The reason for these different assumptions is that "Constrained-Node
    Networks" generally require special egress support, and Anycast
@@ -216,8 +218,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    o  Service Discovery records are one or more PTR RRs, mapping from
       the generic service type (or subtype) to the specific Service
       Instance Name.
-
-
 
 
 
@@ -323,7 +323,7 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    It may be useful to set up a DNS server for testing that does not
    implement SRP.  This can be done by configuring the server to listen
-   on the anycast address, or advertising it in the _dns-update._udp SRV
+   on the anycast address, or advertising it in the _dnssd-srp._tcp SRV
    record.  It must be configured to be authoritative for
    "services.arpa", and to accept updates from hosts on local networks
    for names under "services.arpa" without authentication, since such
@@ -361,7 +361,7 @@ Internet-Draft        Service Registration Protocol            July 2018
    In this case a service MAY attempt to register itself using regular
    RFC2136 DNS updates.  To do so, it must discover the default
    registration zone and the DNS server designated to receive updates
-   for that zone, as described earlier using the _dns-update._udp SRV
+   for that zone, as described earlier using the _dnssd-srp._tcp SRV
    record.  It can then make the update using the port and host pointed
    to by the SRV record, and should use appropriate constraints to avoid
    overwriting competing records.  Such updates are out of scope for
@@ -468,6 +468,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    o  which is for a PTR RR,
    o  which points to a Service Instance Name
    o  for which an update is present in the SRP update.
+   o  Service Discovery updates do not contain any deletes, and do not
+      contain any other updates.
 
    An update is a Service Description update if, for the appropriate
    Service Instance Name, it contains
@@ -480,6 +482,7 @@ Internet-Draft        Service Registration Protocol            July 2018
    o  one or more TXT RRset updates,
    o  and the target of the SRV record update references a hostname for
       which there is a Host Description update in the SRP update.
+   o  Service Descriptions do not update any other records.
 
    An update is a Host Description update if, for the appropriate
    hostname, it contains
@@ -492,12 +495,9 @@ Internet-Draft        Service Registration Protocol            July 2018
    o  there is a Service Instance Name update in the SRP update that
       updates an SRV RR so that it points to the hostname being updated
       by this update.
+   o  Host Description updates do not update any other records.
 
-   An SRP update MUST include at least one Service Discovery update, at
-   least one Service Description update, and exactly one Host
-   Description update.  An update message that does not is not an SRP
-   update.  An update message that contains any other updates, or any
-   update constraints, is not an SRP update.  Such messages should
+
 
 
 
@@ -506,6 +506,11 @@ Cheshire & Lemon        Expires January 15, 2019                [Page 9]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+   An SRP update MUST include at least one Service Discovery update, at
+   least one Service Description update, and exactly one Host
+   Description update.  An update message that does not is not an SRP
+   update.  An update message that contains any other updates, or any
+   update constraints, is not an SRP update.  Such messages should
    either be processed as regular RFC2136 updates, including access
    control checks and constraint checks, if supported, or else rejected
    with RCODE=REFUSED.
@@ -549,11 +554,6 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    There are at least two benefits to doing this rather than simply
    using normal SIG(0) DNS updates.  First, the same registration
-   protocol can be used in both cases, so both use cases can be
-   addressed by the same service implementation.  Second, the
-   registration protocol includes maintenance functionality not present
-   with normal DNS updates.
-
 
 
 
@@ -561,6 +561,11 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 10]
 
 Internet-Draft        Service Registration Protocol            July 2018
 
+
+   protocol can be used in both cases, so both use cases can be
+   addressed by the same service implementation.  Second, the
+   registration protocol includes maintenance functionality not present
+   with normal DNS updates.
 
    Note that the semantics of using SRP in this way are different than
    for typical RFC2136 implementations: the KEY used to sign the SRP
@@ -603,13 +608,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    will be stale.  TTL minimums and maximums SHOULD be configurable by
    the operator of the SRP server.
 
-2.6.  Maintenance
 
-2.6.1.  Cleaning up stale data
 
-   Because the DNS-SD registration protocol is automatic, and not
-   managed by humans, some additional bookkeeping is required.  When an
-   update is constructed by the client, it MUST include include an
 
 
 
@@ -618,6 +618,13 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 11]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+2.6.  Maintenance
+
+2.6.1.  Cleaning up stale data
+
+   Because the DNS-SD registration protocol is automatic, and not
+   managed by humans, some additional bookkeeping is required.  When an
+   update is constructed by the client, it MUST include include an
    EDNS(0) Update Lease Option [I-D.sekar-dns-ul].  The Update Lease
    Option contains two lease times: the Update Lease Time and the
    Instance Lease Time.
@@ -658,13 +665,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    SRP servers MUST reject updates that do not include an EDNS(0) Update
    Lease option.  Dual-use servers MAY accept updates that don't include
    leases, but SHOULD differentiate between SRP updates and other
-   updates, and MUST reject updates that are known to be SRP updates
-   updates if they do not include leases.
-
-   Lease times have a completely different function than TTLs.  On an
-   authoritative DNS server, the TTL on a resource record is a constant:
-   whenever that RR is served in a DNS response, the TTL value sent in
-   the answer is the same.  The lease time is never sent as a TTL; its
 
 
 
@@ -674,6 +674,13 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 12]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+   updates, and MUST reject updates that are known to be SRP updates
+   updates if they do not include leases.
+
+   Lease times have a completely different function than TTLs.  On an
+   authoritative DNS server, the TTL on a resource record is a constant:
+   whenever that RR is served in a DNS response, the TTL value sent in
+   the answer is the same.  The lease time is never sent as a TTL; its
    sole purpose is to determine when the authoritative DNS server will
    delete stale records.
 
@@ -714,13 +721,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    SRP function need not be on the same link as the sleeping host, the
    Sleep Proxy must be on the same link.
 
-3.  Security Considerations
-
-   SRP updates have no authorization semantics other than first-come,
-   first-served.  This means that if an attacker from outside of the
-   administrative domain of the server knows the server's IP address, it
-   can in principle send updates to the server that will be processed
-   successfully.  Servers should therefore be configured to reject
 
 
 
@@ -730,6 +730,13 @@ Cheshire & Lemon        Expires January 15, 2019               [Page 13]
 Internet-Draft        Service Registration Protocol            July 2018
 
 
+3.  Security Considerations
+
+   SRP updates have no authorization semantics other than first-come,
+   first-served.  This means that if an attacker from outside of the
+   administrative domain of the server knows the server's IP address, it
+   can in principle send updates to the server that will be processed
+   successfully.  Servers should therefore be configured to reject
    updates from source addresses outside of the administrative domain of
    the server.
 
@@ -770,6 +777,15 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    IANA is requested to record the domain name 'services.arpa.' in the
    Special-Use Domain Names registry [SUDN].  IANA is requested, with
+
+
+
+
+Cheshire & Lemon        Expires January 15, 2019               [Page 14]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
    the approval of IAB, to implement the delegation requested in
    Section 5.
 
@@ -779,12 +795,16 @@ Internet-Draft        Service Registration Protocol            July 2018
    'services.arpa.' with the description "DNS-SD Registration Protocol
    Special-Use Domain", listing this document as the reference.
 
+   IANA is also requested to add a new entry to the Service Names and
+   Port Numbers registry for dnssd-srp with a transport type of tcp.  No
+   port number is to be assigned.  The reference should be to this
+   document, and the Assignee and Contact information should reference
+   the authors of this document.  The Description should be as follows:
 
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 14]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
+   Availability of DNS Service Discovery Service Registration Protocol
+   Service for a given domain is advertised using the "_dnssd-
+   srp._tcp.<domain>."  SRV record gives the target host and port where
+   DNSSD Service Registration Service is provided for the named domain.
 
 7.  Acknowledgments
 
@@ -815,6 +835,13 @@ Internet-Draft        Service Registration Protocol            July 2018
               Domain ("arpa")", BCP 52, RFC 3172, DOI 10.17487/RFC3172,
               September 2001, <https://www.rfc-editor.org/info/rfc3172>.
 
+
+
+Cheshire & Lemon        Expires January 15, 2019               [Page 15]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
    [RFC8106]  Jeong, J., Park, S., Beloeil, L., and S. Madanapalli,
               "IPv6 Router Advertisement Options for DNS Configuration",
               RFC 8106, DOI 10.17487/RFC8106, March 2017,
@@ -831,16 +858,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    [LSDZ]     "Locally-Served DNS Zones Registry", July 2011,
               <https://www.iana.org/assignments/locally-served-dns-
               zones/locally-served-dns-zones.xhtml>.
-
-
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 15]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
 8.2.  Informative References
 
@@ -873,6 +890,14 @@ Internet-Draft        Service Registration Protocol            July 2018
               Update", RFC 3007, DOI 10.17487/RFC3007, November 2000,
               <https://www.rfc-editor.org/info/rfc3007>.
 
+
+
+
+Cheshire & Lemon        Expires January 15, 2019               [Page 16]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
    [RFC3152]  Bush, R., "Delegation of IP6.ARPA", BCP 49, RFC 3152,
               DOI 10.17487/RFC3152, August 2001,
               <https://www.rfc-editor.org/info/rfc3152>.
@@ -889,14 +914,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    [RFC6762]  Cheshire, S. and M. Krochmal, "Multicast DNS", RFC 6762,
               DOI 10.17487/RFC6762, February 2013,
               <https://www.rfc-editor.org/info/rfc6762>.
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 16]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
    [RFC7228]  Bormann, C., Ersue, M., and A. Keranen, "Terminology for
               Constrained-Node Networks", RFC 7228,
@@ -925,6 +942,18 @@ Internet-Draft        Service Registration Protocol            July 2018
               Networking: The Definitive Guide", O'Reilly Media, Inc. ,
               ISBN 0-596-10100-7, December 2005.
 
+
+
+
+
+
+
+
+Cheshire & Lemon        Expires January 15, 2019               [Page 17]
+
+Internet-Draft        Service Registration Protocol            July 2018
+
+
 Authors' Addresses
 
    Stuart Cheshire
@@ -949,4 +978,31 @@ Authors' Addresses
 
 
 
-Cheshire & Lemon        Expires January 15, 2019               [Page 17]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Cheshire & Lemon        Expires January 15, 2019               [Page 18]

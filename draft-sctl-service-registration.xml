@@ -171,14 +171,15 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       the chosen service registration domain.
       For these names they then discover the zone apex of the closest enclosing DNS zone
       using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
-      Having discovered the enclosing DNS zone, they query for the "_dns-update._udp&lt;zone&gt;" SRV record
+      Having discovered the enclosing DNS zone, they query for the "_dnssd-srp._tcp&lt;zone&gt;" SRV record
       to discover the server to which they should send DNS updates.</t>
 
       <t>For devices designed for "Constrained-Node Networks" <xref target="RFC7228"/> some simplifications are used.
       Instead of being configured with (or discovering) the service registration domain,
       the (proposed) special use domain name <xref target="RFC6761"/> "services.arpa" is used.
       Instead of learning the server to which they should send DNS updates,
-      a fixed IPv6 anycast address is used (value TBD).
+      a fixed IPv6 anycast address is used (value TBD).   Anycasts are sent using UDP unless TCP is required due
+      to the size of the update.
       It is the responsibility of a "Constrained-Node Network" supporting SRP
       to provide appropriate anycast routing to deliver the DNS updates to the appropriate server.
       It is the responsibility of the SRP server on a "Constrained-Node Network"
@@ -291,7 +292,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<section title="Testing using standard RFC2136-compliant servers">
 	  <t>It may be useful to set up a DNS server for testing that does not implement SRP.
 	  This can be done by configuring the server to listen on
-	  the anycast address, or advertising it in the _dns-update._udp SRV record.
+	  the anycast address, or advertising it in the _dnssd-srp._tcp SRV record.
 	  It must be configured to be authoritative for "services.arpa", and
 	  to accept updates from hosts on local networks for names under "services.arpa" without
 	  authentication, since such servers will not have support for FCFS authentication <xref target="fcfs"/>.</t>
@@ -315,7 +316,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 	  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
 	  updates. To do so, it must discover the default registration zone and the DNS server
-	  designated to receive updates for that zone, as described earlier using the _dns-update._udp SRV record.
+	  designated to receive updates for that zone, as described earlier using the _dnssd-srp._tcp SRV record.
 	  It can then make the update using the port and host pointed
 	  to by the SRV record, and should use appropriate constraints to avoid overwriting
 	  competing records.  Such updates are out of scope for SRP,
@@ -396,6 +397,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    <t>which is for a PTR RR,</t>
 	    <t>which points to a Service Instance Name</t>
 	    <t>for which an update is present in the SRP update.</t>
+	    <t>Service Discovery updates do not contain any deletes, and do not contain any other updates.</t>
 	  </list></t>
 
 	  <t>An update is a Service Description update if, for the appropriate Service Instance Name, it contains
@@ -407,6 +409,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    <t>one or more TXT RRset updates,</t>
 	    <t>and the target of the SRV record update references a hostname for which
 	    there is a Host Description update in the SRP update.</t>
+	    <t>Service Descriptions do not update any other records.</t>
 	  </list></t>
 
 	  <t>An update is a Host Description update if, for the appropriate hostname, it contains
@@ -417,6 +420,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	    private key that was used to sign the message,</t>
 	    <t>there is a Service Instance Name update in the SRP update that updates an
 	    SRV RR so that it points to the hostname being updated by this update.</t>
+	    <t>Host Description updates do not update any other records.</t>
 	  </list></t>
 <?rfc subcompact="no" ?>
 
@@ -637,6 +641,16 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<t>IANA is further requested to add a new entry to the "Transport-Intependent Locally-Served Zones" subregistry of the
 	the "Locally-Served DNS Zones" registry<xref target="LSDZ"/>.  The entry will of for 'services.arpa.' with the
 	description "DNS-SD Registration Protocol Special-Use Domain", listing this document as the reference.</t>
+
+	<t>IANA is also requested to add a new entry to the Service Names and Port Numbers
+	registry for dnssd-srp with a transport type of tcp.  No port number is to be assigned.
+	The reference should be to this document, and the Assignee and Contact information should
+	reference the authors of this document.  The Description should be as follows:</t>
+
+	<t>Availability of DNS Service Discovery Service Registration Protocol Service for a
+	given domain is advertised using the "_dnssd-srp._tcp.&lt;domain&gt;." SRV record gives
+	the target host and port where DNSSD Service Registration Service is provided for the
+	named domain.</t>
     </section>
 
     <section title="Acknowledgments">
