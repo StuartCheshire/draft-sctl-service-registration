@@ -5,12 +5,12 @@
 Internet Engineering Task Force                              S. Cheshire
 Internet-Draft                                                Apple Inc.
 Intended status: Informational                                  T. Lemon
-Expires: January 15, 2019                            Nibbhaya Consulting
-                                                           July 14, 2018
+Expires: April 26, 2019                              Nibbhaya Consulting
+                                                        October 23, 2018
 
 
      Service Registration Protocol for DNS-Based Service Discovery
-                   draft-sctl-service-registration-02
+                        draft-ietf-dnssd-srp-00
 
 Abstract
 
@@ -39,7 +39,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on January 15, 2019.
+   This Internet-Draft will expire on April 26, 2019.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Cheshire & Lemon        Expires January 15, 2019                [Page 1]
+Cheshire & Lemon         Expires April 26, 2019                 [Page 1]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
    carefully, as they describe your rights and restrictions with respect
@@ -109,9 +109,9 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-Cheshire & Lemon        Expires January 15, 2019                [Page 2]
+Cheshire & Lemon         Expires April 26, 2019                 [Page 2]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
    administrator manually configure service information in the DNS, but
@@ -119,12 +119,13 @@ Internet-Draft        Service Registration Protocol            July 2018
    potentially error-prone, and requires a knowledgable network
    administrator.  Consequently, although all DNS-SD client
    implementations of which we are aware support DNS-SD using DNS
-   queries, in practice it is used much less frequently than mDNS.  The
-   Discovery Proxy [I-D.ietf-dnssd-hybrid] provides one way to
+   queries, in practice it is used much less frequently than mDNS.
+
+   The Discovery Proxy [I-D.ietf-dnssd-hybrid] provides one way to
    automatically populate the DNS namespace, but is only appropriate on
-   networks where services are already advertised using mDNS.  This
+   networks where services are easily advertised using mDNS.  This
    document describes a solution more suitable for networks where
-   multicast is inefficient, or undesirable for other reasons, by
+   multicast is inefficient, or where sleepy devices are common, by
    supporting both offering of services, and discovery of services,
    using unicast.
 
@@ -159,36 +160,36 @@ Internet-Draft        Service Registration Protocol            July 2018
    they query for the "_dnssd-srp._tcp<zone>" SRV record to discover the
    server to which they should send DNS updates.
 
-   For devices designed for "Constrained-Node Networks" [RFC7228] some
+   For devices designed for Constrained-Node Networks [RFC7228] some
    simplifications are used.  Instead of being configured with (or
-   discovering) the service registration domain, the (proposed) special
 
 
 
-Cheshire & Lemon        Expires January 15, 2019                [Page 3]
+Cheshire & Lemon         Expires April 26, 2019                 [Page 3]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
+   discovering) the service registration domain, the (proposed) special-
    use domain name [RFC6761] "services.arpa" is used.  Instead of
    learning the server to which they should send DNS updates, a fixed
    IPv6 anycast address is used (value TBD).  Anycasts are sent using
    UDP unless TCP is required due to the size of the update.  It is the
-   responsibility of a "Constrained-Node Network" supporting SRP to
+   responsibility of a Constrained-Node Network supporting SRP to
    provide appropriate anycast routing to deliver the DNS updates to the
-   appropriate server.  It is the responsibility of the SRP server on a
-   "Constrained-Node Network" to handle the updates appropriately.  In
-   some network environments, updates may be accepted directly into a
-   local "services.arpa" zone, which has only local visibility.  In
-   other network environments, updates for names ending in
-   "services.arpa" may be rewritten internally to names with broader
+   appropriate server.  It is the responsibility of the SRP server
+   supporting a Constrained-Node Network to handle the updates
+   appropriately.  In some network environments, updates may be accepted
+   directly into a local "services.arpa" zone, which has only local
+   visibility.  In other network environments, updates for names ending
+   in "services.arpa" may be rewritten internally to names with broader
    visibility.
 
-   The reason for these different assumptions is that "Constrained-Node
-   Networks" generally require special egress support, and Anycast
-   packets captured at the "Constrained-Node Network" egress can be
+   The reason for these different assumptions is that Constrained-Node
+   Networks generally require special egress support, and Anycast
+   packets captured at the Constrained-Node Network egress can be
    assumed to have originated locally.  Low-power devices that typically
-   use "Constrained-Node Networks" may have very limited battery power.
+   use Constrained-Node Networks may have very limited battery power.
    The additional DNS lookups required to discover an SRP server and
    then communicate with it will increase the power required to
    advertise a service; for low-power devices, the additional
@@ -215,16 +216,19 @@ Internet-Draft        Service Registration Protocol            July 2018
    Discovery records, Service Description records, and Host Description
    records.
 
+
+
+
+
+
+Cheshire & Lemon         Expires April 26, 2019                 [Page 4]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
    o  Service Discovery records are one or more PTR RRs, mapping from
       the generic service type (or subtype) to the specific Service
       Instance Name.
-
-
-
-Cheshire & Lemon        Expires January 15, 2019                [Page 4]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
    o  Service Description records are exactly one SRV RR, exactly one
       KEY RR, and one or more TXT RRs, both with the same name, the
@@ -242,12 +246,12 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    RFC 6763 describes the details of what each of these types of updates
    contains and is the definitive source for information about what to
-   publish; the reason for mentioning it here is to provide the reader
-   with enough information about what will be published that the service
-   registration process can be understood at a high level without first
-   learning the full details of DNS-SD.  Also, the "Service Instance
-   Name" is an important aspect of first-come, first-serve naming, which
-   we describe later on in this document.
+   publish; the reason for summarizing this here is to provide the
+   reader with enough information about what will be published that the
+   service registration process can be understood at a high level
+   without first learning the full details of DNS-SD.  Also, the
+   "Service Instance Name" is an important aspect of first-come, first-
+   serve naming, which we describe later on in this document.
 
 2.2.  Where to publish it
 
@@ -258,7 +262,7 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    As described above, full-featured devices are responsible for knowing
    in what domain they should register their services.  Devices made for
-   "Constrained-Node Networks" register in the (proposed) special use
+   Constrained-Node Networks register in the (proposed) special use
    domain name [RFC6761] "services.arpa", and let the SRP server handle
    rewriting that to a different domain if necessary.
 
@@ -271,24 +275,24 @@ Internet-Draft        Service Registration Protocol            July 2018
    updating the Service Instance Name and Host Description in a single
    transaction.
 
+
+
+Cheshire & Lemon         Expires April 26, 2019                 [Page 5]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
    An SRP update is therefore implemented as a single DNS Update message
    that contains a service's Service Discovery records, Service
    Description records, and Host Description records.
 
-
-
-Cheshire & Lemon        Expires January 15, 2019                [Page 5]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
-
    Updates done according to this specification are somewhat different
-   than regular DNS Updates as defined in RFC2136.  RFC2136 assumes that
-   updating is a fairly heavyweight process, so you might first attempt
-   to add a name if it doesn't exist, and then in a second message
-   update the name if it does exist but matches certain preconditions.
-   Because the registration protocol uses a single transaction, some of
-   this adaptability is lost.
+   than regular DNS Updates as defined in RFC2136.  RFC2136 uses a
+   fairly heavyweight process for updating: you might first attempt to
+   add a name if it doesn't exist; if that fails, then in a second
+   message you might update the name if it does exist but matches
+   certain preconditions.  Because the registration protocol uses a
+   single transaction, some of this adaptability is lost.
 
    In order to allow updates to happen in a single transaction, SRP
    updates do not include update constraints.  The constraints specified
@@ -326,17 +330,16 @@ Internet-Draft        Service Registration Protocol            July 2018
    on the anycast address, or advertising it in the _dnssd-srp._tcp SRV
    record.  It must be configured to be authoritative for
    "services.arpa", and to accept updates from hosts on local networks
+
+
+
+Cheshire & Lemon         Expires April 26, 2019                 [Page 6]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
    for names under "services.arpa" without authentication, since such
    servers will not have support for FCFS authentication Section 2.4.1.
-
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019                [Page 6]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
    A server configured in this way will be able to successfully accept
    and process SRP updates from services that send SRP updates.
@@ -361,13 +364,15 @@ Internet-Draft        Service Registration Protocol            July 2018
    In this case a service MAY attempt to register itself using regular
    RFC2136 DNS updates.  To do so, it must discover the default
    registration zone and the DNS server designated to receive updates
-   for that zone, as described earlier using the _dnssd-srp._tcp SRV
+   for that zone, as described earlier using the _dns-update._udp SRV
    record.  It can then make the update using the port and host pointed
    to by the SRV record, and should use appropriate constraints to avoid
    overwriting competing records.  Such updates are out of scope for
    SRP, and a service that implements SRP MUST first attempt to use SRP
    to register itself, and should only attempt to use RFC2136 backwards
-   compatibility if that fails.
+   compatibility if that fails.  Although the owner name for the SRV
+   record specifies the UDP protocol for updates, it is also possible to
+   use TCP, when the update is too large.
 
 2.4.  How to secure it
 
@@ -381,18 +386,16 @@ Internet-Draft        Service Registration Protocol            July 2018
    registration has to be automatic.  It is possible to layer more
    operational security on top of what we describe here, but what we
    describe here improves upon the security of mDNS.  The goal is not to
+
+
+
+Cheshire & Lemon         Expires April 26, 2019                 [Page 7]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
    provide the level of security of a network managed by a skilled
    operator.
-
-
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019                [Page 7]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
 2.4.1.  First-Come First-Served Naming
 
@@ -410,7 +413,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    The service generates a public/private key pair.  This key pair MUST
    be stored in stable storage; if there is no writable stable storage
    on the client, the client MUST be pre-configured with a public/
-   private key pair that can be used.
+   private key pair in read-only storage that can be used.  This key
+   pair MUST be unique to the device.
 
    When sending DNS updates, the service includes a KEY record
    containing the public portion of the key in each Host Description
@@ -432,8 +436,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    may be temporarily unplugged, disappearing from the network for a few
    days, it makes a claim on its name that lasts much longer.
 
-   This way, even if a device is unplugged from the network for a few
-   days, and its services are not available for that time, no other
+   This means that even if a device is unplugged from the network for a
+   few days, and its services are not available for that time, no other
    rogue device can come along and immediately claim its name the moment
    it disappears from the network.  In the event that a device is
    unplugged from the network and permanently discarded, then its name
@@ -441,13 +445,9 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019                [Page 8]
+Cheshire & Lemon         Expires April 26, 2019                 [Page 8]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
 2.4.2.  SRP Server Behavior
@@ -460,7 +460,9 @@ Internet-Draft        Service Registration Protocol            July 2018
    contains a Service Discovery update, a Service Description update,
    and a Host Description update.  Order matters in DNS updates.
    Specifically, deletes must precede adds for records that the deletes
-   would affect; otherwise the add will have no effect.
+   would affect; otherwise the add will have no effect.  This is the
+   only ordering constraint; aside from this constraint, updates may
+   appear in whatever order is convenient when constructing the update.
 
    An update is a Service Discovery update if it contains
 
@@ -488,7 +490,7 @@ Internet-Draft        Service Registration Protocol            July 2018
    hostname, it contains
 
    o  exactly one "Delete all RRsets from a name" update,
-   o  A or AAAA RR update(s)
+   o  one or more A or AAAA RR update(s)
    o  exactly one KEY RR update that adds a KEY RR that contains the
       public key corresponding to the private key that was used to sign
       the message,
@@ -499,11 +501,9 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-
-
-Cheshire & Lemon        Expires January 15, 2019                [Page 9]
+Cheshire & Lemon         Expires April 26, 2019                 [Page 9]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
    An SRP update MUST include at least one Service Discovery update, at
@@ -557,9 +557,9 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-Cheshire & Lemon        Expires January 15, 2019               [Page 10]
+Cheshire & Lemon         Expires April 26, 2019                [Page 10]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
    protocol can be used in both cases, so both use cases can be
@@ -599,7 +599,7 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    TTLs sent in SRP updates are advisory: they indicate the client's
    guess as to what a good TTL would be.  SRP servers may override these
-   TTLS.  SRP servers SHOULD ensure that TTLs are reasonable: neither
+   TTLs.  SRP servers SHOULD ensure that TTLs are reasonable: neither
    too long nor too short.  The TTL should never be longer than the
    lease time Section 2.6.1.  Shorter TTLs will result in more frequent
    data refreshes; this increases latency on the client side, and
@@ -613,9 +613,9 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-Cheshire & Lemon        Expires January 15, 2019               [Page 11]
+Cheshire & Lemon         Expires April 26, 2019                [Page 11]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
 2.6.  Maintenance
@@ -626,29 +626,29 @@ Internet-Draft        Service Registration Protocol            July 2018
    managed by humans, some additional bookkeeping is required.  When an
    update is constructed by the client, it MUST include include an
    EDNS(0) Update Lease Option [I-D.sekar-dns-ul].  The Update Lease
-   Option contains two lease times: the Update Lease Time and the
-   Instance Lease Time.
+   Option contains two lease times: the Lease Time and the Key Lease
+   Time.
 
    These leases are promises, similar to DHCP leases [RFC2131], from the
    client that it will send a new update for the service registration
-   before the lease time expires.  The Update Lease time is chosen to
-   represent the time after the update during which the registered
-   records other than the KEY record should be assumed to be valid.  The
-   Instance Lease time represents the time after the update during which
-   the KEY record should be assumed to be valid.
+   before the lease time expires.  The Lease time is chosen to represent
+   the time after the update during which the registered records other
+   than the KEY record should be assumed to be valid.  The Key Lease
+   time represents the time after the update during which the KEY record
+   should be assumed to be valid.
 
    The reasoning behind the different lease times is discussed in the
    section on first-come, first-served naming Section 2.4.1.  SRP
    servers may be configured with limits for these values.  A default
-   limit of two hours for the Update Lease and 14 days for the SIG(0)
-   KEY are currently thought to be good choices.  Clients that are going
-   to continue to use names on which they hold leases should update well
+   limit of two hours for the Lease and 14 days for the SIG(0) KEY are
+   currently thought to be good choices.  Clients that are going to
+   continue to use names on which they hold leases should update well
    before the lease ends, in case the registration service is
    unavailable or under heavy load.
 
    The SRP server MUST include an EDNS(0) Update Lease option in the
-   response if the lease time proposed by the service has been
-   shortened.  The service MUST check for the EDNS(0) Update Lease
+   response if the lease time proposed by the service has been shortened
+   or lengthened.  The service MUST check for the EDNS(0) Update Lease
    option in the response and MUST use the lease times from that option
    in place of the options that it sent to the server when deciding when
    to update its registration.  The times may be shorter or longer than
@@ -669,12 +669,12 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-Cheshire & Lemon        Expires January 15, 2019               [Page 12]
+Cheshire & Lemon         Expires April 26, 2019                [Page 12]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
 
-   updates, and MUST reject updates that are known to be SRP updates
+   updates, and MUST reject updates that would otherwise be SRP updates
    updates if they do not include leases.
 
    Lease times have a completely different function than TTLs.  On an
@@ -682,7 +682,8 @@ Internet-Draft        Service Registration Protocol            July 2018
    whenever that RR is served in a DNS response, the TTL value sent in
    the answer is the same.  The lease time is never sent as a TTL; its
    sole purpose is to determine when the authoritative DNS server will
-   delete stale records.
+   delete stale records.  It is not an error to send a DNS response with
+   a TTL of 'n' when the remaining time on the lease is less than 'n'.
 
 2.6.2.  Sleep Proxy
 
@@ -724,11 +725,20 @@ Internet-Draft        Service Registration Protocol            July 2018
 
 
 
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 13]
+Cheshire & Lemon         Expires April 26, 2019                [Page 13]
 
-Internet-Draft        Service Registration Protocol            July 2018
+Internet-Draft        Service Registration Protocol         October 2018
 
+
+   It is not required that sleepy nodes on a Constrained-Node Network
+   support sleep proxy.  Such devices may have different mechanisms for
+   dealing with sleep and wakeup.  An SRP registration for such a device
+   will be useful regardless of the mechanism whereby messages are
+   delivered to the sleepy end device.  For example, the message might
+   be held in a buffer for an extended period of time by an intermediate
+   device on a mesh network, and then delivered to the device when it
+   wakes up.  The exact details of such behaviors are out of scope for
+   this document.
 
 3.  Security Considerations
 
@@ -741,11 +751,11 @@ Internet-Draft        Service Registration Protocol            July 2018
    the server.
 
    For Anycast updates, this validation must be enforced by every router
-   that connects the CDN to the unconstrained portion of the network.
-   For TCP updates, the initial SYN-SYN+ACK handshake prevents updates
-   being forged from off-network.  In order to ensure that this
-   handshake happens, Service Discovery Protocol servers MUST NOT accept
-   0-RTT TCP payloads.
+   that connects the Constrained-Device Network to the unconstrained
+   portion of the network.  For TCP updates, the initial SYN-SYN+ACK
+   handshake prevents updates being forged by an off-network attacker.
+   In order to ensure that this handshake happens, Service Discovery
+   Protocol servers MUST NOT accept TCP Fast Open payloads.
 
    Note that these rules only apply to the validation of SRP updates.  A
    server that accepts updates from DNS-SD registration protocol clients
@@ -764,6 +774,18 @@ Internet-Draft        Service Registration Protocol            July 2018
    updates to records added by SRP updates using different
    authentication and authorization credentials.
 
+
+
+
+
+
+
+
+Cheshire & Lemon         Expires April 26, 2019                [Page 14]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
 4.  Privacy Considerations
 
 5.  Delegation of 'services.arpa.'
@@ -777,20 +799,11 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    IANA is requested to record the domain name 'services.arpa.' in the
    Special-Use Domain Names registry [SUDN].  IANA is requested, with
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 14]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
-
    the approval of IAB, to implement the delegation requested in
    Section 5.
 
    IANA is further requested to add a new entry to the "Transport-
-   Intependent Locally-Served Zones" subregistry of the the "Locally-
+   Independent Locally-Served Zones" subregistry of the the "Locally-
    Served DNS Zones" registry[LSDZ].  The entry will of for
    'services.arpa.' with the description "DNS-SD Registration Protocol
    Special-Use Domain", listing this document as the reference.
@@ -822,9 +835,16 @@ Internet-Draft        Service Registration Protocol            July 2018
               Discovery", RFC 6763, DOI 10.17487/RFC6763, February 2013,
               <https://www.rfc-editor.org/info/rfc6763>.
 
+
+
+Cheshire & Lemon         Expires April 26, 2019                [Page 15]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
    [I-D.sekar-dns-ul]
-              Sekar, K., "Dynamic DNS Update Leases", draft-sekar-dns-
-              ul-01 (work in progress), August 2006.
+              Cheshire, S. and T. Lemon, "Dynamic DNS Update Leases",
+              draft-sekar-dns-ul-02 (work in progress), August 2018.
 
    [RFC2132]  Alexander, S. and R. Droms, "DHCP Options and BOOTP Vendor
               Extensions", RFC 2132, DOI 10.17487/RFC2132, March 1997,
@@ -834,13 +854,6 @@ Internet-Draft        Service Registration Protocol            July 2018
               Requirements for the Address and Routing Parameter Area
               Domain ("arpa")", BCP 52, RFC 3172, DOI 10.17487/RFC3172,
               September 2001, <https://www.rfc-editor.org/info/rfc3172>.
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 15]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
    [RFC8106]  Jeong, J., Park, S., Beloeil, L., and S. Madanapalli,
               "IPv6 Router Advertisement Options for DNS Configuration",
@@ -878,6 +891,13 @@ Internet-Draft        Service Registration Protocol            July 2018
               RFC 2136, DOI 10.17487/RFC2136, April 1997,
               <https://www.rfc-editor.org/info/rfc2136>.
 
+
+
+Cheshire & Lemon         Expires April 26, 2019                [Page 16]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
+
    [RFC2181]  Elz, R. and R. Bush, "Clarifications to the DNS
               Specification", RFC 2181, DOI 10.17487/RFC2181, July 1997,
               <https://www.rfc-editor.org/info/rfc2181>.
@@ -889,14 +909,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    [RFC3007]  Wellington, B., "Secure Domain Name System (DNS) Dynamic
               Update", RFC 3007, DOI 10.17487/RFC3007, November 2000,
               <https://www.rfc-editor.org/info/rfc3007>.
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 16]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
    [RFC3152]  Bush, R., "Delegation of IP6.ARPA", BCP 49, RFC 3152,
               DOI 10.17487/RFC3152, August 2001,
@@ -927,11 +939,20 @@ Internet-Draft        Service Registration Protocol            July 2018
 
    [I-D.ietf-dnssd-push]
               Pusateri, T. and S. Cheshire, "DNS Push Notifications",
-              draft-ietf-dnssd-push-14 (work in progress), March 2018.
+              draft-ietf-dnssd-push-15 (work in progress), September
+              2018.
 
    [I-D.cheshire-dnssd-roadmap]
               Cheshire, S., "Service Discovery Road Map", draft-
-              cheshire-dnssd-roadmap-01 (work in progress), March 2018.
+              cheshire-dnssd-roadmap-02 (work in progress), October
+              2018.
+
+
+
+Cheshire & Lemon         Expires April 26, 2019                [Page 17]
+
+Internet-Draft        Service Registration Protocol         October 2018
+
 
    [I-D.cheshire-edns0-owner-option]
               Cheshire, S. and M. Krochmal, "EDNS0 OWNER Option", draft-
@@ -941,18 +962,6 @@ Internet-Draft        Service Registration Protocol            July 2018
    [ZC]       Cheshire, S. and D. Steinberg, "Zero Configuration
               Networking: The Definitive Guide", O'Reilly Media, Inc. ,
               ISBN 0-596-10100-7, December 2005.
-
-
-
-
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 17]
-
-Internet-Draft        Service Registration Protocol            July 2018
-
 
 Authors' Addresses
 
@@ -996,13 +1005,4 @@ Authors' Addresses
 
 
 
-
-
-
-
-
-
-
-
-
-Cheshire & Lemon        Expires January 15, 2019               [Page 18]
+Cheshire & Lemon         Expires April 26, 2019                [Page 18]
