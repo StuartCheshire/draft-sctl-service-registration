@@ -88,7 +88,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       enable DNS-Based Service Discovery using only unicast packets.  This makes it possible to deploy DNS
 	  Service Discovery without multicast, which greatly improves scalability
       and improves performance on networks where multicast service is not an optimal choice,
-      particularly 802.11 (Wi-Fi) and 802.15.4 (IoT) networks.   DNS-SD Service registration uses
+      particularly 802.11 (Wi&nbhy;Fi) and 802.15.4 (IoT) networks.   DNS&nbhy;SD Service registration uses
       public keys and SIG(0) to allow services to defend their registrations against attack.
       </t>
     </abstract>
@@ -104,27 +104,27 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <t>This document describes an enhancement to <xref target="RFC6763">DNS-Based Service
       Discovery</xref> that allows services to automatically register their services using the
       DNS protocol rather than using <xref target="RFC6762">Multicast
-      DNS</xref> (mDNS).  There is already a large installed base of DNS-SD
+      DNS</xref> (mDNS).  There is already a large installed base of DNS&nbhy;SD
       clients that can discover services using the DNS protocol.  This extension makes it
       much easier to take advantage of this existing functionality.</t>
 
       <t>This document is intended for three audiences: implementors of software that provides
-      services that should be advertised using DNS-SD, implementors of DNS servers that will be
-      used in contexts where DNS-SD registration is needed, and administrators of networks where
-      DNS-SD service is required.  The document is intended to provide sufficient information to
+      services that should be advertised using DNS&nbhy;SD, implementors of DNS servers that will be
+      used in contexts where DNS&nbhy;SD registration is needed, and administrators of networks where
+      DNS&nbhy;SD service is required.  The document is intended to provide sufficient information to
       allow interoperable implementation of the registration protocol.</t>
 
-      <t>DNS-Based Service Discovery (DNS-SD) allows services to advertise the fact that they
+      <t>DNS-Based Service Discovery (DNS&nbhy;SD) allows services to advertise the fact that they
       provide service, and to provide the information required to access that service.  Clients
       can then discover the set of services of a particular type that are available.  They can
       then select a service from among those that are available and obtain the information
       required to use it.</t>
 
-      <t>The Service Registration Protocol for DNS-SD (SRP), described in this document, provides a
+      <t>The Service Registration Protocol for DNS&nbhy;SD (SRP), described in this document, provides a
       reasonably secure mechanism for publishing this information.  Once published, these
       services can be readily discovered by clients using standard DNS lookups.</t>
 
-      <t>The <xref target="RFC6763">DNS-SD specification</xref>, Section
+      <t>The <xref target="RFC6763">DNS&nbhy;SD specification</xref>, Section
       10 (“Populating the DNS with Information”), briefly discusses ways that services can publish
       their information in the DNS namespace.  In the case of mDNS, it allows services to publish their information on the
       local link, using names in the ".local" namespace, which makes their
@@ -134,8 +134,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       This can be done by having a system administrator manually configure service
       information in the DNS, but manually populating DNS authoritative server databases is
       costly and potentially error-prone, and requires a knowledgable network administrator.
-      Consequently, although all DNS-SD client implementations of which we are aware support
-      DNS-SD using DNS queries, in practice it is used much less frequently than mDNS.</t>
+      Consequently, although all DNS&nbhy;SD client implementations of which we are aware support
+      DNS&nbhy;SD using DNS queries, in practice it is used much less frequently than mDNS.</t>
 
       <t>The <xref target="I-D.ietf-dnssd-hybrid">Discovery Proxy</xref> provides one way to
       automatically populate the DNS namespace, but is only appropriate on networks where
@@ -152,7 +152,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       and one for devices designed for "Constrained-Node Networks" <xref target="RFC7228"/>.</t>
 
       <t>Full-featured hosts are either configured manually with a registration domain,
-      or use the "dr._dns-sd._udp.&lt;domain&gt;" query (<xref target="RFC6763"/> Section 11)
+      or use the "dr._dns&nbhy;sd._udp.&lt;domain&gt;" query (<xref target="RFC6763"/> Section 11)
       to learn the default registration domain from the network.
       RFC6763 says to discover the registration domain using either ".local" or a network-supplied
       domain name for &lt;domain&gt;.  Services using SRP MUST use
@@ -164,14 +164,14 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
       <t>Manual configuration of the registraton domain can be done either by querying the list
       of available registration
-      zones ("r._dns-sd._udp") and allowing the user to select one from the UI, or by any other
+      zones ("r._dns&nbhy;sd._udp") and allowing the user to select one from the UI, or by any other
       means appropriate to the particular use case being addressed.
       Full-featured devices construct
       the names of the SRV, TXT, and PTR records describing their service(s) as subdomains of
       the chosen service registration domain.
       For these names they then discover the zone apex of the closest enclosing DNS zone
       using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
-      Having discovered the enclosing DNS zone, they query for the "_dnssd-srp._tcp&lt;zone&gt;" SRV record
+      Having discovered the enclosing DNS zone, they query for the "_dnssd&nbhy;srp._tcp&lt;zone&gt;" SRV record
       to discover the server to which they should send DNS updates.</t>
 
       <t>For devices designed for Constrained-Node Networks <xref target="RFC7228"/> some simplifications are available.
@@ -235,14 +235,14 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	the definitive source for information about what to publish; the reason for summarizing
 	this here is to provide the reader with enough information about what will be published
 	that the service registration process can be understood at a high level without first
-	learning the full details of DNS-SD.  Also, the "Service Instance Name" is an important
+	learning the full details of DNS&nbhy;SD.  Also, the "Service Instance Name" is an important
 	aspect of first-come, first-serve naming, which we describe later on in this
 	document.</t>
       </section>
 
       <section title="Where to publish it">
 	<t>Multicast DNS uses a single namespace, ".local", which is valid on the local link.
-	This convenience is not available for DNS-SD using the DNS protocol:
+	This convenience is not available for DNS&nbhy;SD using the DNS protocol:
 	services must exist in some specific unicast namespace.</t>
 
 	<t>As described above, full-featured devices are responsible for knowing
@@ -277,8 +277,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	are implicit in the processing of SRP updates, and so there is no need for the
 	service sending the SRP update to put in any explicit constraints.</t>
 
-	<section title="How DNS-SD Service Registration differs from standard RFC2136 DNS Update">
-	  <t>DNS-SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
+	<section title="How DNS&nbhy;SD Service Registration differs from standard RFC2136 DNS Update">
+	  <t>DNS&nbhy;SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
         <list style="symbols">
           <t>It implements first-come first-served name allocation, protected using SIG(0) <xref
           target="RFC2931"/>.</t>
@@ -294,7 +294,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	<section title="Testing using standard RFC2136-compliant servers">
 	  <t>It may be useful to set up a DNS server for testing that does not implement SRP.
 	  This can be done by configuring the server to listen on
-	  the anycast address, or advertising it in the _dnssd-srp._tcp.&lt;zone&gt; SRV record.
+	  the anycast address, or advertising it in the _dnssd&nbhy;srp._tcp.&lt;zone&gt; SRV record.
 	  It must be configured to be authoritative for "default.services.arpa", and
 	  to accept updates from hosts on local networks for names under "default.services.arpa" without
 	  authentication, since such servers will not have support for FCFS authentication
@@ -326,7 +326,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
 	  updates. To do so, it must discover the default registration zone and the DNS server
 	  designated to receive updates for that zone, as described earlier using the
-	  _dns-update._udp SRV record.  It can then make the update using the port and host
+	  _dns&nbhy;update._udp SRV record.  It can then make the update using the port and host
 	  pointed to by the SRV record, and should use appropriate constraints to avoid
 	  overwriting competing records.  Such updates are out of scope for SRP, and a service
 	  that implements SRP MUST first attempt to use SRP to register itself, and should only
@@ -341,7 +341,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	shared between the client (which issues the update) and the server (which authenticates
 	it).  This model does not work for automatic service registration.</t>
 
-	<t>The goal of securing the DNS-SD Registration Protocol is to provide the best possible
+	<t>The goal of securing the DNS&nbhy;SD Registration Protocol is to provide the best possible
 	security given the constraint that service registration has to be automatic.  It is
 	possible to layer more operational security on top of what we describe here, but what we
 	describe here improves upon the security of mDNS.  The goal is not to provide the level
@@ -349,7 +349,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 	<section anchor="fcfs" title="First-Come First-Served Naming">
 	  <t>First-Come First-Serve naming provides a limited degree of security: a service that
-	  registers its service using DNS-SD Registration protocol is given ownership of a name
+	  registers its service using DNS&nbhy;SD Registration protocol is given ownership of a name
 	  for an extended period of time based on the key used to authenticate the DNS Update.
 	  As long as the registration service remembers the name and the key used
 	  to register that name, no other service can add or update the information
@@ -374,7 +374,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 		Description is also given for each Service Description for which no KEY record is provided.
 		Omitted KEY records are not used when computing the SIG(0) signature.</t>
 
-	    <t>The lifetime of the <xref target="RFC6763">DNS-SD PTR, SRV, A, AAAA and TXT
+	    <t>The lifetime of the <xref target="RFC6763">DNS&nbhy;SD PTR, SRV, A, AAAA and TXT
 	    records</xref> uses the LEASE field of the Update Lease option, and is typically set
 	    to two hours.  This means that if a device is disconnected from the network, it does
 	    not appear in the user interfaces of devices looking for services of that type for
@@ -542,7 +542,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
       <section title="Maintenance">
 	<section title="Cleaning up stale data" anchor="stale">
-	  <t>Because the DNS-SD registration protocol is automatic, and not managed by humans,
+	  <t>Because the DNS&nbhy;SD registration protocol is automatic, and not managed by humans,
 	  some additional bookkeeping is required.  When an update is constructed by the client,
 	  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.
 	  The Update Lease Option contains two lease times: the Lease Time and the Key
@@ -650,7 +650,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 		handshake happens, Service Discovery Protocol servers MUST NOT accept TCP Fast Open payloads.</t>
 
 		<t>Note that these rules only apply to the validation of SRP updates.
-		A server that accepts updates from DNS-SD registration protocol
+		A server that accepts updates from DNS&nbhy;SD registration protocol
 		clients may also accept other DNS updates, and those DNS updates may be validated
 		using different rules.   However, in the case of a DNS service that accepts SRP
 		updates, the intersection of the SRP update rules and
@@ -695,7 +695,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 		
 		<t>IANA is further requested to add a new entry to the "Transport-Independent Locally-Served Zones" subregistry of the
 		the "Locally-Served DNS Zones" registry<xref target="LSDZ"/>.  The entry will be for the domain 'services.arpa.' with the
-		description "DNS-SD Registration Protocol Special-Use Domain", listing this document as the reference.</t>
+		description "DNS&nbhy;SD Registration Protocol Special-Use Domain", listing this document as the reference.</t>
 	  </section>
 	  <section title="'dnssd-srp' Service Name">
 		<t>IANA is also requested to add a new entry to the Service Names and Port Numbers
@@ -704,7 +704,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 		reference the authors of this document.  The Description should be as follows:</t>
 
 		<t>Availability of DNS Service Discovery Service Registration Protocol Service for a
-		given domain is advertised using the "_dnssd-srp._tcp.&lt;domain&gt;." SRV record gives
+		given domain is advertised using the "_dnssd&nbhy;srp._tcp.&lt;domain&gt;." SRV record gives
 		the target host and port where DNSSD Service Registration Service is provided for the
 		named domain.</t>
       </section>

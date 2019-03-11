@@ -19,9 +19,9 @@ Abstract
    Discovery using only unicast packets.  This makes it possible to
    deploy DNS Service Discovery without multicast, which greatly
    improves scalability and improves performance on networks where
-   multicast service is not an optimal choice, particularly 802.11 (Wi-
-   Fi) and 802.15.4 (IoT) networks.  DNS-SD Service registration uses
-   public keys and SIG(0) to allow services to defend their
+   multicast service is not an optimal choice, particularly 802.11
+   (Wi-Fi) and 802.15.4 (IoT) networks.  DNS-SD Service registration
+   uses public keys and SIG(0) to allow services to defend their
    registrations against attack.
 
 Status of This Memo
@@ -128,12 +128,12 @@ Internet-Draft        Service Registration Protocol           March 2019
    functionality.
 
    This document is intended for three audiences: implementors of
-   software that provides services that should be advertised using DNS-
-   SD, implementors of DNS servers that will be used in contexts where
-   DNS-SD registration is needed, and administrators of networks where
-   DNS-SD service is required.  The document is intended to provide
-   sufficient information to allow interoperable implementation of the
-   registration protocol.
+   software that provides services that should be advertised using
+   DNS-SD, implementors of DNS servers that will be used in contexts
+   where DNS-SD registration is needed, and administrators of networks
+   where DNS-SD service is required.  The document is intended to
+   provide sufficient information to allow interoperable implementation
+   of the registration protocol.
 
    DNS-Based Service Discovery (DNS-SD) allows services to advertise the
    fact that they provide service, and to provide the information
@@ -375,8 +375,8 @@ Internet-Draft        Service Registration Protocol           March 2019
 
    It may be useful to set up a DNS server for testing that does not
    implement SRP.  This can be done by configuring the server to listen
-   on the anycast address, or advertising it in the _dnssd-
-   srp._tcp.<zone> SRV record.  It must be configured to be
+   on the anycast address, or advertising it in the
+   _dnssd-srp._tcp.<zone> SRV record.  It must be configured to be
    authoritative for "default.services.arpa", and to accept updates from
    hosts on local networks for names under "default.services.arpa"
    without authentication, since such servers will not have support for
@@ -923,9 +923,10 @@ Internet-Draft        Service Registration Protocol           March 2019
    the authors of this document.  The Description should be as follows:
 
    Availability of DNS Service Discovery Service Registration Protocol
-   Service for a given domain is advertised using the "_dnssd-
-   srp._tcp.<domain>."  SRV record gives the target host and port where
-   DNSSD Service Registration Service is provided for the named domain.
+   Service for a given domain is advertised using the
+   "_dnssd-srp._tcp.<domain>."  SRV record gives the target host and
+   port where DNSSD Service Registration Service is provided for the
+   named domain.
 
 6.3.  Anycast Address
 
@@ -942,7 +943,6 @@ Internet-Draft        Service Registration Protocol           March 2019
    for doing a service implementation at the Montreal Hackathon at IETF
    102, Tom Pusateri for reviewing during the hackathon and afterwards,
    and [...] more reviewers to come, hopefully.
-
 
 
 
