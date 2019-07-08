@@ -409,6 +409,10 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 	  only ordering constraint; aside from this constraint, updates may appear in whatever
 	  order is convenient when constructing the update.</t>
 
+	  <t>Because the SRP update is a DNS update, it MUST contain a single question that
+	  indicates the zone to be updated.  Every delete and update in an SRP update MUST be within
+	  the zone that is specified for the SRP Update.</t>
+
 <?rfc subcompact="yes" ?>
 	  <t>An update is a Service Discovery update if it contains
 	  <list style="symbols">
@@ -445,9 +449,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 <?rfc subcompact="no" ?>
 
 	  <t>An SRP update MUST include at least one Service Discovery update, at least one Service
-	  Description update, and exactly one Host Description update.  An update message that
-	  does not is not an SRP update.  An update message that contains any other updates, or
-	  any update constraints, is not an SRP update.  Such messages should either be
+	  Description update, and exactly one Host Description update.  An update message that does
+	  not is not an SRP update.  An update message that contains any other updates, any other
+	  deletes, or any update constraints, is not an SRP update.  Such messages should either be
 	  processed as regular RFC2136 updates, including access control checks and constraint
 	  checks, if supported, or else rejected with RCODE=REFUSED.</t>
 
