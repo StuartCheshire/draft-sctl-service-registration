@@ -9,9 +9,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
 <!-- used by XSLT processors -->
 <!-- For a complete list and description of processing instructions (PIs),
-     please see http://xml.resource.org/authoring/README.html. -->
+please see http://xml.resource.org/authoring/README.html. -->
 <!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
-     (Here they are set differently than their defaults in xml2rfc v1.35) -->
+(Here they are set differently than their defaults in xml2rfc v1.35) -->
 
 <!-- give errors regarding ID-nits and DTD validation -->
 <?rfc strict="yes" ?>
@@ -29,7 +29,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 <?rfc sortrefs="no" ?>
 
 <!-- control vertical white space
-     (using these PIs as follows is recommended by the RFC Editor) -->
+(using these PIs as follows is recommended by the RFC Editor) -->
 <!-- do not start each main section on a new page -->
 <?rfc compact="yes" ?>
 <!-- keep one blank line between list items -->
@@ -39,7 +39,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 <?rfc rfcprocack="yes" ?>
 <!-- end of list of popular I-D processing instructions -->
 
-<rfc category="info" docName="draft-ietf-dnssd-srp-01" ipr="trust200902">
+<rfc category="info" docName="draft-ietf-dnssd-srp-02" ipr="trust200902">
 
   <front>
     <title abbrev='Service Registration Protocol'>Service Registration Protocol for DNS-Based Service Discovery</title>
@@ -72,7 +72,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       </address>
     </author>
 
-    <date year='2019' month='March' day='11'/>
+    <date year='2019' month='July' day='8'/>
     <area>Internet</area>
     <workgroup>Internet Engineering Task Force</workgroup>
     <keyword>Multicast DNS</keyword>
@@ -86,7 +86,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
     <abstract>
       <t>The Service Registration Protocol for DNS-Based Service Discovery uses the standard DNS Update mechanism to
       enable DNS-Based Service Discovery using only unicast packets.  This makes it possible to deploy DNS
-	  Service Discovery without multicast, which greatly improves scalability
+      Service Discovery without multicast, which greatly improves scalability
       and improves performance on networks where multicast service is not an optimal choice,
       particularly 802.11 (Wi&nbhy;Fi) and 802.15.4 (IoT) networks.   DNS&nbhy;SD Service registration uses
       public keys and SIG(0) to allow services to defend their registrations against attack.
@@ -142,7 +142,7 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       services are easily advertised using mDNS.  This document describes a solution more
       suitable for networks where multicast is inefficient, or where sleepy devices are common,
       by supporting both offering of services, and discovery of services, using unicast.</t>
-    <?rfc needLines="20" ?>
+      <?rfc needLines="20" ?>
     </section>
 
     <section title="Service Registration Protocol">
@@ -172,11 +172,12 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       For these names they then discover the zone apex of the closest enclosing DNS zone
       using SOA queries <xref target="I-D.ietf-dnssd-push"/>.
       Having discovered the enclosing DNS zone, they query for the "_dnssd&nbhy;srp._tcp&lt;zone&gt;" SRV record
-      to discover the server to which they should send DNS updates.</t>
+      to discover the server to which they should send DNS updates.  Hosts that support SRP updates using TLS use
+      the "_dnssd&nbhy;srp&nbhy;tls._tcp&lt;zone&gt;" SRV record instead.</t>
 
       <t>For devices designed for Constrained-Node Networks <xref target="RFC7228"/> some simplifications are available.
       Instead of being configured with (or discovering) the service registration domain,
-      the (proposed) special-use domain name <xref target="RFC6761"/> "default.services.arpa" is used.
+      the (proposed) special-use domain name (see <xref target="RFC6761"/>) "default.service.arpa" is used.
       Instead of learning the server to which they should send DNS updates,
       a fixed IPv6 anycast address is used (value TBD).   Anycasts are sent using UDP unless TCP is required due
       to the size of the update.
@@ -184,9 +185,9 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       to provide appropriate anycast routing to deliver the DNS updates to the appropriate server.
       It is the responsibility of the SRP server supporting a Constrained-Node Network
       to handle the updates appropriately.
-      In some network environments, updates may be accepted directly into a local "default.services.arpa" zone,
+      In some network environments, updates may be accepted directly into a local "default.service.arpa" zone,
       which has only local visibility.
-      In other network environments, updates for names ending in "default.services.arpa" may be rewritten internally
+      In other network environments, updates for names ending in "default.service.arpa" may be rewritten internally
       to names with broader visibility.
       </t>
 
@@ -211,514 +212,553 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       to maintain the information once published.</t>
 
       <section title="What to publish">
-	<t>We refer to the DNS Update message sent by services using SRP as an SRP update.
-	Three types of updates appear in an SRP update:
-	Service Discovery records,
-	Service Description records, and
-	Host Description records.
-	<list style="symbols">
-	  <t>Service Discovery records are one or more PTR RRs,
-	  mapping from the generic service type (or subtype)
-	  to the specific Service Instance Name.</t>
-	  <t>Service Description records are exactly one SRV RR, exactly one KEY RR, and one or more TXT RRs,
-	  both with the same name, the Service Instance Name (<xref target="RFC6763"/> section 4.1).
-	  In principle Service Description records can include other record types,
-	  with the same Service Instance Name, though in practice they rarely do.
-	  The Service Instance Name MUST be referenced by one or more Service Discovery PTR records,
-	  unless it is a placeholder service registration for an intentionally non-discoverable service name.</t>
-	  <t>The Host Description records for a service are a KEY RR,
-	  used to claim exclusive ownership of the service registration,
-	  and one or more RRs of type A or AAAA,
-	  giving the IPv4 or IPv6 address(es) of the host where the service resides.</t>
-	</list></t>
-	<t>RFC 6763 describes the details of what each of these types of updates contains and is
-	the definitive source for information about what to publish; the reason for summarizing
-	this here is to provide the reader with enough information about what will be published
-	that the service registration process can be understood at a high level without first
-	learning the full details of DNS&nbhy;SD.  Also, the "Service Instance Name" is an important
-	aspect of first-come, first-serve naming, which we describe later on in this
-	document.</t>
+		<t>We refer to the DNS Update message sent by services using SRP as an SRP update.
+		Three types of updates appear in an SRP update:
+		Service Discovery records,
+		Service Description records, and
+		Host Description records.
+		<list style="symbols">
+		  <t>Service Discovery records are one or more PTR RRs,
+		  mapping from the generic service type (or subtype)
+		  to the specific Service Instance Name.</t>
+		  <t>Service Description records are exactly one SRV RR, exactly one KEY RR, and one or more TXT RRs,
+		  all with the same name, the Service Instance Name (<xref target="RFC6763"/> section 4.1).
+		  In principle Service Description records can include other record types,
+		  with the same Service Instance Name, though in practice they rarely do.
+		  The Service Instance Name MUST be referenced by one or more Service Discovery PTR records,
+		  unless it is a placeholder service registration for an intentionally non-discoverable service name.</t>
+		  <t>The Host Description records for a service are a KEY RR,
+		  used to claim exclusive ownership of the service registration,
+		  and one or more RRs of type A or AAAA,
+		  giving the IPv4 or IPv6 address(es) of the host where the service resides.</t>
+		</list></t>
+		<t>RFC 6763 describes the details of what each of these types of updates contains and is
+		the definitive source for information about what to publish; the reason for summarizing
+		this here is to provide the reader with enough information about what will be published
+		that the service registration process can be understood at a high level without first
+		learning the full details of DNS&nbhy;SD.  Also, the "Service Instance Name" is an important
+		aspect of first-come, first-serve naming, which we describe later on in this
+		document.</t>
       </section>
 
       <section title="Where to publish it">
-	<t>Multicast DNS uses a single namespace, ".local", which is valid on the local link.
-	This convenience is not available for DNS&nbhy;SD using the DNS protocol:
-	services must exist in some specific unicast namespace.</t>
+		<t>Multicast DNS uses a single namespace, ".local", which is valid on the local link.
+		This convenience is not available for DNS&nbhy;SD using the DNS protocol:
+		services must exist in some specific unicast namespace.</t>
 
-	<t>As described above, full-featured devices are responsible for knowing
-	in what domain they should register their services.
-	Devices made for Constrained-Node Networks register in
-	the (proposed) special use domain name <xref target="RFC6761"/> "default.services.arpa",
-	and let the SRP server handle rewriting that to
-	a different domain if necessary.</t>
+		<t>As described above, full-featured devices are responsible for knowing
+		in what domain they should register their services.
+		Devices made for Constrained-Node Networks register in
+		the (proposed) special use domain name <xref target="RFC6761"/> "default.service.arpa",
+		and let the SRP server handle rewriting that to
+		a different domain if necessary.</t>
       </section>
 
       <section title="How to publish it">
-	<t>It is possible to issue a DNS Update that does several things at once; this means
-	that it's possible to do all the work of adding a PTR resource record to the PTR RRset
-	on the Service Name if it already exists, or creating one if it doesn't, and creating or
-	updating the Service Instance Name and Host Description in a single transaction.</t>
+		<t>It is possible to issue a DNS Update that does several things at once; this means
+		that it's possible to do all the work of adding a PTR resource record to the PTR RRset
+		on the Service Name, and creating or
+		updating the Service Instance Name and Host Description, in a single transaction.</t>
 
-	<t>An SRP update is therefore implemented as a single DNS Update message that contains
-	a service's
-	Service Discovery records,
-	Service Description records, and
-	Host Description records.</t>
+		<t>An SRP update takes advantage of this: it is implemented as a single DNS Update message
+		that contains a service's Service Discovery records, Service Description records, and Host
+		Description records.</t>
 
-	<t>Updates done according to this specification are somewhat different than regular DNS
-	Updates as defined in RFC2136.  RFC2136 uses a fairly heavyweight process for updating:
-	you might first attempt to add a name if it doesn't exist; if that fails, then in a
-	second message you might update the name if it does exist but matches certain
-	preconditions.  Because the registration protocol uses a single transaction, some of
-	this adaptability is lost.</t>
+		<t>Updates done according to this specification are somewhat different than regular DNS
+		Updates as defined in RFC2136.  RFC2136 uses a fairly heavyweight process for updating:
+		you might first attempt to add a name if it doesn't exist; if that fails, then in a
+		second message you might update the name if it does exist but matches certain
+		preconditions.  Because the registration protocol uses a single transaction, some of
+		this adaptability is lost.</t>
 
-	<t>In order to allow updates to happen in a single transaction, SRP updates do not
-	include update constraints.   The constraints specified in <xref target="server_behavior"/>
-	are implicit in the processing of SRP updates, and so there is no need for the
-	service sending the SRP update to put in any explicit constraints.</t>
+		<t>In order to allow updates to happen in a single transaction, SRP updates do not
+		include update prerequisites.   The  specified in <xref target="server_behavior"/>
+		are implicit in the processing of SRP updates, and so there is no need for the
+		service sending the SRP update to put in any explicit prerequisites.</t>
 
-	<section title="How DNS&nbhy;SD Service Registration differs from standard RFC2136 DNS Update">
-	  <t>DNS&nbhy;SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
-        <list style="symbols">
-          <t>It implements first-come first-served name allocation, protected using SIG(0) <xref
-          target="RFC2931"/>.</t>
-          <t>It enforces policy about what updates are allowed.</t>
-          <t>It optionally performs rewriting of "default.services.arpa" to some other domain.</t>
-          <t>It optionally performs automatic population of the address-to-name reverse mapping domains.</t>
-          <t>An SRP server is not required to implement general DNS Update prerequsite processing.</t>
-          <t>Simplified clients are allowed to send updates to an anycast address, for names
-          ending in "default.services.arpa"</t>
-        </list></t>
-	</section>
+		<section title="How DNS&nbhy;SD Service Registration differs from standard RFC2136 DNS Update">
+		  <t>DNS&nbhy;SD Service Registration is based on standard RFC2136 DNS Update, with some differences:
+          <list style="symbols">
+			<t>It implements first-come first-served name allocation, protected using SIG(0) <xref
+			target="RFC2931"/>.</t>
+			<t>It enforces policy about what updates are allowed.</t>
+			<t>It optionally performs rewriting of "default.service.arpa" to some other domain.</t>
+			<t>It optionally performs automatic population of the address-to-name reverse mapping domains.</t>
+			<t>An SRP server is not required to implement general DNS Update prerequsite processing.</t>
+			<t>Simplified clients are allowed to send updates to an anycast address, for names
+			ending in "default.service.arpa"</t>
+          </list></t>
+		</section>
 
-	<section title="Testing using standard RFC2136-compliant servers">
-	  <t>It may be useful to set up a DNS server for testing that does not implement SRP.
-	  This can be done by configuring the server to listen on
-	  the anycast address, or advertising it in the _dnssd&nbhy;srp._tcp.&lt;zone&gt; SRV record.
-	  It must be configured to be authoritative for "default.services.arpa", and
-	  to accept updates from hosts on local networks for names under "default.services.arpa" without
-	  authentication, since such servers will not have support for FCFS authentication
-	  <xref target="fcfs"/>.</t>
+		<section title="Testing using standard RFC2136-compliant servers">
+		  <t>It may be useful to set up a DNS server for testing that does not implement SRP.
+		  This can be done by configuring the server to listen on
+		  the anycast address, or advertising it in the _dnssd&nbhy;srp._tcp.&lt;zone&gt; SRV and
+		  _dnssd&nbhy;srp&nbhy;tls._tcp.&lt;zone&gt; record.
+		  It must be configured to be authoritative for "default.service.arpa", and
+		  to accept updates from hosts on local networks for names under "default.service.arpa" without
+		  authentication, since such servers will not have support for FCFS authentication
+		  <xref target="fcfs"/>.</t>
 
-	  <t>A server configured in this way will be able to successfully accept and process
-	  SRP updates from services that send SRP updates.  However, no constraints will be
-	  applied, and this means that the test server will accept internally inconsistent
-	  SRP updates, and will not stop two SRP updates, sent by different services, that
-	  claim the same name(s), from overwriting each other.</t>
+		  <t>A server configured in this way will be able to successfully accept and process
+		  SRP updates from services that send SRP updates.  However, no prerequisites will be
+		  applied, and this means that the test server will accept internally inconsistent
+		  SRP updates, and will not stop two SRP updates, sent by different services, that
+		  claim the same name(s), from overwriting each other.</t>
 
-      <t>Since SRP updates are signed with keys, validation of the SIG(0) algorithm used
-	  by the client can be done by manually installing the client public key on the DNS server
-	  that will be receiving the updates.   The key can then be used to authenticate the
-	  client, and can be used as a requirement for the update.   An example configuration
-	  for testing SRP using BIND 9 is given in <xref target="bind-example"/>.</t>
-	</section>
+		  <t>Since SRP updates are signed with keys, validation of the SIG(0) algorithm used
+		  by the client can be done by manually installing the client public key on the DNS server
+		  that will be receiving the updates.   The key can then be used to authenticate the
+		  client, and can be used as a requirement for the update.   An example configuration
+		  for testing SRP using BIND 9 is given in <xref target="bind-example"/>.</t>
+		</section>
 
-	<section title="How to allow services to update standard RFC2136-compliant servers">
-	  <t>Ordinarily SRP updates will fail when sent to an RFC 2136-compliant
-	  server that does not implement SRP
-	  because the zone being updated is "default.services.arpa", and no DNS server that is
-	  not an SRP server should normally be configured to be authoritative
-	  for "default.services.arpa".  Therefore, a service that sends an SRP update can tell that the
-	  receiving server does not support SRP, but does support RFC2136,
-	  because the RCODE will either be NOTZONE, NOTAUTH or REFUSED, or because there is no
-	  response to the update request (when using the anycast address)</t>
+		<section title="How to allow services to update standard RFC2136-compliant servers">
+		  <t>Ordinarily SRP updates will fail when sent to an RFC 2136-compliant
+		  server that does not implement SRP
+		  because the zone being updated is "default.service.arpa", and no DNS server that is
+		  not an SRP server should normally be configured to be authoritative
+		  for "default.service.arpa".  Therefore, a service that sends an SRP update can tell that the
+		  receiving server does not support SRP, but does support RFC2136,
+		  because the RCODE will either be NOTZONE, NOTAUTH or REFUSED, or because there is no
+		  response to the update request (when using the anycast address)</t>
 
-	  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
-	  updates. To do so, it must discover the default registration zone and the DNS server
-	  designated to receive updates for that zone, as described earlier using the
-	  _dns&nbhy;update._udp SRV record.  It can then make the update using the port and host
-	  pointed to by the SRV record, and should use appropriate constraints to avoid
-	  overwriting competing records.  Such updates are out of scope for SRP, and a service
-	  that implements SRP MUST first attempt to use SRP to register itself, and should only
-	  attempt to use RFC2136 backwards compatibility if that fails.  Although the owner
-	  name for the SRV record specifies the UDP protocol for updates, it is also possible
-	  to use TCP, when the update is too large.</t>
-	</section>
+		  <t>In this case a service MAY attempt to register itself using regular RFC2136 DNS
+		  updates. To do so, it must discover the default registration zone and the DNS server
+		  designated to receive updates for that zone, as described earlier, using the
+		  _dns&nbhy;update._udp SRV record.  It can then make the update using the port and host
+		  pointed to by the SRV record, and should use appropriate prerequisites to avoid
+		  overwriting competing records.  Such updates are out of scope for SRP, and a service that
+		  implements SRP MUST first attempt to use SRP to register itself, and should only attempt
+		  to use RFC2136 backwards compatibility if that fails.  Although the owner name for the SRV
+		  record specifies the UDP protocol for updates, it is also possible to use TCP, and TCP
+		  should be required to prevent spoofing.</t>
+		</section>
       </section>
 
       <section title="How to secure it">
-	<t>Traditional DNS update is secured using the TSIG protocol, which uses a secret key
-	shared between the client (which issues the update) and the server (which authenticates
-	it).  This model does not work for automatic service registration.</t>
+		<t>Traditional DNS update is secured using the TSIG protocol, which uses a secret key
+		shared between the client (which issues the update) and the server (which authenticates
+		it).  This model does not work for automatic service registration.</t>
 
-	<t>The goal of securing the DNS&nbhy;SD Registration Protocol is to provide the best possible
-	security given the constraint that service registration has to be automatic.  It is
-	possible to layer more operational security on top of what we describe here, but what we
-	describe here improves upon the security of mDNS.  The goal is not to provide the level
-	of security of a network managed by a skilled operator.</t>
+		<t>The goal of securing the DNS&nbhy;SD Registration Protocol is to provide the best possible
+		security given the constraint that service registration has to be automatic.  It is
+		possible to layer more operational security on top of what we describe here, but what we
+		describe here improves upon the security of mDNS.  The goal is not to provide the level
+		of security of a network managed by a skilled operator.</t>
 
-	<section anchor="fcfs" title="First-Come First-Served Naming">
-	  <t>First-Come First-Serve naming provides a limited degree of security: a service that
-	  registers its service using DNS&nbhy;SD Registration protocol is given ownership of a name
-	  for an extended period of time based on the key used to authenticate the DNS Update.
-	  As long as the registration service remembers the name and the key used
-	  to register that name, no other service can add or update the information
-	  associated with that.
-	  FCFS naming is used to protect both the Service Description and the Host Description.</t>
-	  <section title="Service Behavior">
-	    <t>The service generates a public/private key pair.  This key pair MUST be stored in
-	    stable storage; if there is no writable stable storage on the client, the client
-	    MUST be pre-configured with a public/private key pair in read-only storage that can
-	    be used.  This key pair MUST be unique to the device.</t>
+		<section anchor="fcfs" title="First-Come First-Served Naming">
+		  <t>First-Come First-Serve naming provides a limited degree of security: a service that
+		  registers its service using DNS&nbhy;SD Registration protocol is given ownership of a name
+		  for an extended period of time based on the key used to authenticate the DNS Update.
+		  As long as the registration service remembers the name and the key used
+		  to register that name, no other service can add or update the information
+		  associated with that.
+		  FCFS naming is used to protect both the Service Description and the Host Description.</t>
+		  <section title="Service Behavior">
+			<t>The service generates a public/private key pair.  This key pair MUST be stored in
+			stable storage; if there is no writable stable storage on the client, the client
+			MUST be pre-configured with a public/private key pair in read-only storage that can
+			be used.  This key pair MUST be unique to the device.</t>
 
-	    <t>When sending DNS updates, the service includes a KEY record containing the public
-	    portion of the key in each Host Description update and each Service Description update.
-	    Each KEY record MUST contain the same public key.
-	    The update is signed using SIG(0), using
-	    the private key that corresponds to the public key in the KEY record.   The lifetimes
-	    of the records in the update is set using the EDNS(0) Update Lease option
-	    <xref target="I-D.sekar-dns-ul"/>.</t>
+			<t>When sending DNS updates, the service includes a KEY record containing the public
+			portion of the key in each Host Description update and each Service Description update.
+			Each KEY record MUST contain the same public key.
+			The update is signed using SIG(0), using
+			the private key that corresponds to the public key in the KEY record.   The lifetimes
+			of the records in the update is set using the EDNS(0) Update Lease option
+			<xref target="I-D.sekar-dns-ul"/>.</t>
 
-		<t>The KEY record in service description updates MAY be omitted for brevity; if it is
-		omitted, the SRP server MUST behave as if the same KEY record that is given for the Host
-		Description is also given for each Service Description for which no KEY record is provided.
-		Omitted KEY records are not used when computing the SIG(0) signature.</t>
+			<t>The KEY record in Service Description updates MAY be omitted for brevity; if it is
+			omitted, the SRP server MUST behave as if the same KEY record that is given for the Host
+			Description is also given for each Service Description for which no KEY record is provided.
+			Omitted KEY records are not used when computing the SIG(0) signature.</t>
 
-	    <t>The lifetime of the <xref target="RFC6763">DNS&nbhy;SD PTR, SRV, A, AAAA and TXT
-	    records</xref> uses the LEASE field of the Update Lease option, and is typically set
-	    to two hours.  This means that if a device is disconnected from the network, it does
-	    not appear in the user interfaces of devices looking for services of that type for
-	    too long.</t>
+			<t>The lifetime of the <xref target="RFC6763">DNS&nbhy;SD PTR, SRV, A, AAAA and TXT
+			records</xref> uses the LEASE field of the Update Lease option, and is typically set
+			to two hours.  This means that if a device is disconnected from the network, it does
+			not appear in the user interfaces of devices looking for services of that type for
+			too long.</t>
 
-	    <t>The lifetime of the KEY records is set using the KEY-LEASE field of the Update Lease
-	    Option, and should be set to a much longer time,
-	    typically 14 days.  The result of this is that even though a device may be
-	    temporarily unplugged, disappearing from the network for a few days, it makes a
-	    claim on its name that lasts much longer.</t>
+			<t>The lifetime of the KEY records is set using the KEY-LEASE field of the Update Lease
+			Option, and should be set to a much longer time,
+			typically 14 days.  The result of this is that even though a device may be
+			temporarily unplugged, disappearing from the network for a few days, it makes a
+			claim on its name that lasts much longer.</t>
 
-	    <t>This means that even if a device is unplugged from the network for a few days,
-	    and its services are not available for that time, no other rogue device
-	    can come along and immediately claim its name the moment it disappears
-	    from the network.
-	    In the event that a device is unplugged from the network and permanently discarded,
-	    then its name is eventually cleaned up and made available for
-	    re-use.</t>
+			<t>This means that even if a device is unplugged from the network for a few days,
+			and its services are not available for that time, no other rogue device
+			can come along and immediately claim its name the moment it disappears
+			from the network.
+			In the event that a device is unplugged from the network and permanently discarded,
+			then its name is eventually cleaned up and made available for
+			re-use.</t>
+		  </section>
+		</section>
+
+		<section anchor="remove" title="Removing published services">
+		  <t>
+			Blah blah blah how removal works blah blah.
+		  </t>
+		  <t>
+			SRP clients SHOULD remove all service instances when removing a host.  However, in some
+			cases a client may not have retained sufficient state to know that some service instance
+			is pointing to a host that it is removing.  Nevertheless, removing the host can be
+			assumed to mean that all service instances pointing to it are no longer valid.
+			Therefore, SRP servers MAY remove all service instances pointing to a host when a host
+			is removed, even if the client doesn't remove them explicitly.
+		  </t>
+		</section>
+		
+		<section anchor="server_behavior" title="SRP Server Behavior">
+		  <section anchor="add_validation" title="Validation of Adds">
+			<t>The SRP server first validates that the SRP update is a syntactically and semantically valid
+			DNS Update according to the rules specified in RFC2136.</t>
+			
+			<t>The SRP server checks each update in the SRP update to see that it contains
+			a Service Discovery update,
+			a Service Description update, and
+			a Host Description update.
+			Order matters in DNS updates.  Specifically, deletes must precede adds for records
+			that the deletes would affect; otherwise the add will have no effect.  This is the
+			only ordering constraint; aside from this constraint, updates may appear in whatever
+			order is convenient when constructing the update.</t>
+
+			<t>Because the SRP update is a DNS update, it MUST contain a single question that
+			indicates the zone to be updated.  Every delete and update in an SRP update MUST be within
+			the zone that is specified for the SRP Update.</t>
+			
+			<?rfc subcompact="yes" ?>
+			<t>An update is a Service Discovery update if it contains
+			<list style="symbols">
+			  <t>exactly one RRset update,</t>
+			  <t>which is for a PTR RR,</t>
+			  <t>which points to a Service Instance Name</t>
+			  <t>for which an update is present in the SRP update.</t>
+			  <t>Service Discovery updates do not contain any deletes, and do not contain any other updates.</t>
+			</list></t>
+
+			<t>An update is a Service Description update if, for the appropriate Service Instance Name, it contains
+			<list style="symbols">
+			  <t>exactly one "Delete all RRsets from a name" update,</t>
+			  <t>exactly one SRV RRset update,</t>
+			  <t>zero or one KEY RR update that adds a KEY RR that contains the public key
+			  corresponding to the private key that was used to sign the message (if present, the KEY
+			  MUST match the KEY RR given in the Host Description),</t>
+			  <t>one or more TXT RRset updates,</t>
+			  <t>and the target of the SRV record update references a hostname for which
+			  there is a Host Description update in the SRP update.</t>
+			  <t>Service Descriptions do not update any other records.</t>
+			</list></t>
+
+			<t>An update is a Host Description update if, for the appropriate hostname, it contains
+			<list style="symbols">
+			  <t>exactly one "Delete all RRsets from a name" update,</t>
+			  <t>one or more A or AAAA RR update(s)</t>
+			  <t>exactly one KEY RR update that adds a KEY RR that contains the public key corresponding to the
+			  private key that was used to sign the message,</t>
+			  <t>there is a Service Instance Name update in the SRP update that updates an
+			  SRV RR so that it points to the hostname being updated by this update.</t>
+			  <t>Host Description updates do not update any other records.</t>
+			</list></t>
+			<?rfc subcompact="no" ?>
+
+			<t>An SRP update MUST include at least one Service Discovery update, at least one Service
+			Description update, and exactly one Host Description update.  An update message that does
+			not is not an SRP update.  An update message that contains any other updates, any other
+			deletes, or any update prerequisites, is not an SRP update.  Such messages should either be
+			processed as regular RFC2136 updates, including access control checks and constraint
+			checks, if supported, or else rejected with RCODE=REFUSED.</t>
+
+			<t>Note that if the definitions of each of these update types are followed carefully,
+			this means that many things that look very much like SRP updates nevertheless are
+			not.  For example, a DNS update that contains an update to a Service Name and an
+			update to a Service Instance Name, where the Service Name does not reference the
+			Service Instance Name, is not a valid SRP update message, but may be a valid RFC2136
+			update.</t>
+
+			<t>Assuming that an update message has been validated with these conditions and is a
+			valid SRP update, the server checks that the name in the Host Description update
+			exists.  If so, then the server checks to see if the KEY record on the name is the
+			same as the KEY record in the update.  The server performs the same check for the KEY records in
+			any Service Description update.  For KEY records that were omitted, the KEY from the
+			Host Description update is used.
+			If any existing KEY record corresponding to a KEY record in the SRP update does not match
+			the KEY record in the SRP update, then the server MUST reject
+			the SRP update
+			with the YXDOMAIN RCODE.  </t>
+
+			<t>Otherwise, the server validates the SRP update using SIG(0) on the public key in the
+			KEY record of the Host Description update.  If the validation fails, the server MUST
+			reject the
+			SRP Update with the REFUSED RCODE.  Otherwise, the SRP update is considered valid and authentic, and
+			is processed according to the method described in RFC2136.</t>
+
+			<t>KEY record updates omitted from Service Description update are processed as if they had
+			been explicitly present: every Service Description that is updated MUST, after the update,
+			have a KEY RR, and it must be the same KEY RR that is present in the Host Description to
+			which the Service Description refers.</t>
+
+			<t>The status that is returned depends on the result of processing the update, and can be
+			either SUCCESS or SERVFAIL: all other possible outcomes should already have been accounted
+			for when applying the constraints that qualify the update as an SRP Update.</t>
+
+			<t>The server MAY add a Reverse Mapping that corresponds to the Host Description.
+			This is not required because the Reverse Mapping serves no protocol function, but
+			it may be useful for debugging, e.g. in annotating network packet traces or logs.
+			In order for the server to add a reverse mapping update, it must be authoritative for
+			the zone or have credentials to do the update.  The client MAY also do a reverse
+			mapping update if it has credentials to do so.</t>
+
+			<t>The server MAY apply additional criteria when accepting updates.   In some networks,
+			it may be possible to do out-of-band registration of keys, and only accept updates
+			from pre-registered keys.  In this case, an update for a key that has not been registered
+			should be rejected with the REFUSED RCODE.</t>
+
+			<t>There are at least two benefits to doing this rather than simply using normal
+			SIG(0) DNS updates.  First, the same registration protocol can be used in both cases,
+			so both use cases can be addressed by the same service implementation.  Second, the
+			registration protocol includes maintenance functionality not present with normal DNS
+			updates.</t>
+			
+			<t>Note that the semantics of using SRP in this way are different than
+			for typical RFC2136 implementations: the KEY used to sign the SRP update
+			only allows the client to update records that refer to its Host Description.   RFC2136
+			implementations do not normally provide a way to enforce a constraint of this type.</t>
+
+			<t>The server may also have a dictionary of names or name patterns that are not
+			permitted.  If such a list is used, updates for Service Instance Names that match
+			entries in the dictionary are rejected with YXDOMAIN.</t>
+		  </section>
+		</section>
 	  </section>
-	</section>
-
-	<section anchor="server_behavior" title="SRP Server Behavior">
-	  <t>The SRP server first validates that the SRP update is a syntactically and semantically valid
-	  DNS Update according to the rules specified in RFC2136.</t>
-	  
-	  <t>The SRP server checks each update in the SRP update to see that it contains
-	  a Service Discovery update,
-	  a Service Description update, and
-	  a Host Description update.
-	  Order matters in DNS updates.  Specifically, deletes must precede adds for records
-	  that the deletes would affect; otherwise the add will have no effect.  This is the
-	  only ordering constraint; aside from this constraint, updates may appear in whatever
-	  order is convenient when constructing the update.</t>
-
-	  <t>Because the SRP update is a DNS update, it MUST contain a single question that
-	  indicates the zone to be updated.  Every delete and update in an SRP update MUST be within
-	  the zone that is specified for the SRP Update.</t>
-
-<?rfc subcompact="yes" ?>
-	  <t>An update is a Service Discovery update if it contains
-	  <list style="symbols">
-	    <t>exactly one RRset update,</t>
-	    <t>which is for a PTR RR,</t>
-	    <t>which points to a Service Instance Name</t>
-	    <t>for which an update is present in the SRP update.</t>
-	    <t>Service Discovery updates do not contain any deletes, and do not contain any other updates.</t>
-	  </list></t>
-
-	  <t>An update is a Service Description update if, for the appropriate Service Instance Name, it contains
-	  <list style="symbols">
-	    <t>exactly one "Delete all RRsets from a name" update,</t>
-	    <t>exactly one SRV RRset update,</t>
-	    <t>zero or one KEY RR update that adds a KEY RR that contains the public key
-	    corresponding to the private key that was used to sign the message (if present, the KEY
-	    MUST match the KEY RR given in the Host Description),</t>
-	    <t>one or more TXT RRset updates,</t>
-	    <t>and the target of the SRV record update references a hostname for which
-	    there is a Host Description update in the SRP update.</t>
-	    <t>Service Descriptions do not update any other records.</t>
-	  </list></t>
-
-	  <t>An update is a Host Description update if, for the appropriate hostname, it contains
-	  <list style="symbols">
-	    <t>exactly one "Delete all RRsets from a name" update,</t>
-	    <t>one or more A or AAAA RR update(s)</t>
-	    <t>exactly one KEY RR update that adds a KEY RR that contains the public key corresponding to the
-	    private key that was used to sign the message,</t>
-	    <t>there is a Service Instance Name update in the SRP update that updates an
-	    SRV RR so that it points to the hostname being updated by this update.</t>
-	    <t>Host Description updates do not update any other records.</t>
-	  </list></t>
-<?rfc subcompact="no" ?>
-
-	  <t>An SRP update MUST include at least one Service Discovery update, at least one Service
-	  Description update, and exactly one Host Description update.  An update message that does
-	  not is not an SRP update.  An update message that contains any other updates, any other
-	  deletes, or any update constraints, is not an SRP update.  Such messages should either be
-	  processed as regular RFC2136 updates, including access control checks and constraint
-	  checks, if supported, or else rejected with RCODE=REFUSED.</t>
-
-	  <t>Note that if the definitions of each of these update types are followed carefully,
-	  this means that many things that look very much like SRP updates nevertheless are
-	  not.  For example, a DNS update that contains an update to a Service Name and an
-	  update to a Service Instance Name, where the Service Name does not reference the
-	  Service Instance Name, is not a valid SRP update message, but may be a valid RFC2136
-	  update.</t>
-
-	  <t>Assuming that an update message has been validated with these conditions and is a
-	  valid SRP update, the server checks that the name in the Host Description update
-	  exists.  If so, then the server checks to see if the KEY record on the name is the
-	  same as the KEY record in the update.  The server performs the same check for the KEY records in
-	  any Service Description update.  For KEY records that were omitted, the KEY from the
-	  Host Description update is used.
-	  If any existing KEY record corresponding to a KEY record in the SRP update does not match
-	  the KEY record in the SRP update, then the server MUST reject
-	  the SRP update
-	  with the YXDOMAIN RCODE.  </t>
-
-	  <t>Otherwise, the server validates the SRP update using SIG(0) on the public key in the
-	  KEY record of the Host Description update.  If the validation fails, the server MUST
-	  reject the
-	  SRP Update with the REFUSED RCODE.  Otherwise, the SRP update is considered valid and authentic, and
-	  is processed according to the method described in RFC2136.</t>
-
-	  <t>KEY record updates omitted from Service Description update are processed as if they had
-	  been explicitly present: every Service Description that is updated MUST, after the update,
-	  have a KEY RR, and it must be the same KEY RR that is present in the Host Description to
-	  which the Service Description refers.</t>
-
-	  <t>The status that is returned depends on the result of processing the update, and can be
-	  either SUCCESS or SERVFAIL: all other possible outcomes should already have been accounted
-	  for when applying the constraints.</t>
-
-	  <t>The server MAY add a Reverse Mapping that corresponds to the Host Description.
-	  This is not required because the Reverse Mapping serves no protocol function, but
-	  it may be useful for debugging, e.g. in annotating network packet traces or logs.</t>
-
-	  <t>The server MAY apply additional criteria when accepting updates.   In some networks,
-	  it may be possible to do out-of-band registration of keys, and only accept updates
-	  from pre-registered keys.  In this case, an update for a key that has not been registered
-	  should be rejected with the REFUSED RCODE.</t>
-
-	  <t>There are at least two benefits to doing this rather than simply using normal
-	  SIG(0) DNS updates.  First, the same registration protocol can be used in both cases,
-	  so both use cases can be addressed by the same service implementation.  Second, the
-	  registration protocol includes maintenance functionality not present with normal DNS
-	  updates.</t>
-	  
-	  <t>Note that the semantics of using SRP in this way are different than
-	  for typical RFC2136 implementations: the KEY used to sign the SRP update
-	  only allows the client to update records that refer to its Host Description.   RFC2136
-	  implementations do not normally provide a way to enforce a constraint of this type.</t>
-
-	  <t>The server may also have a dictionary of names or name patterns that are not
-	  permitted.  If such a list is used, updates for Service Instance Names that match
-	  entries in the dictionary are rejected with YXDOMAIN.</t>
-	</section>
-      </section>
 
       <section title="TTL Consistency">
-	<t>All RRs within an RRset are required to have the same TTL
-	(<xref target="RFC2181">Clarifications to the DNS Specification</xref>, Section 5.2).
-	In order to avoid inconsistencies, SRP places restrictions
-	on TTLs sent by services and requires that SRP Servers enforce
-	consistency.</t>
+		<t>All RRs within an RRset are required to have the same TTL
+		(<xref target="RFC2181">Clarifications to the DNS Specification</xref>, Section 5.2).
+		In order to avoid inconsistencies, SRP places restrictions
+		on TTLs sent by services and requires that SRP Servers enforce
+		consistency.</t>
 
-	<t>Services sending SRP updates MUST use consistent TTLs in all RRs within the
-	SRP update.</t>
+		<t>Services sending SRP updates MUST use consistent TTLs in all RRs within the
+		SRP update.</t>
 
-	<t>SRP update servers MUST check that the TTLs for all RRs within
-	the SRP update are the same.   If they are not, the SRP update MUST be rejected
-	with a REFUSED RCODE.</t>
+		<t>SRP update servers MUST check that the TTLs for all RRs within
+		the SRP update are the same.   If they are not, the SRP update MUST be rejected
+		with a REFUSED RCODE.</t>
 
-	<t>Additionally, when adding RRs to an RRset, for example when processing Service
-	Discovery records, the server MUST use the same TTL on all RRs in the RRset.
-	How this consistency is enforced is up to the implementation.</t>
+		<t>Additionally, when adding RRs to an RRset, for example when processing Service
+		Discovery records, the server MUST use the same TTL on all RRs in the RRset.
+		How this consistency is enforced is up to the implementation.</t>
 
-	<t>TTLs sent in SRP updates are advisory: they indicate the client's guess as to what
-	a good TTL would be.   SRP servers may override these TTLs.
-	SRP servers SHOULD ensure that TTLs are reasonable: neither
-	too long nor too short.  The TTL should never be longer than the lease time
-	<xref target="stale"/>.   Shorter TTLs will result in more frequent data refreshes;
-	this increases latency on the client side, and increases load on any caching resolvers
-	and on the authoritative server.   Longer TTLs will increase the likelihood that data
-	in caches will be stale.   TTL minimums and maximums SHOULD be configurable by the
-	operator of the SRP server.
-	</t>
+		<t>TTLs sent in SRP updates are advisory: they indicate the client's guess as to what
+		a good TTL would be.   SRP servers may override these TTLs.
+		SRP servers SHOULD ensure that TTLs are reasonable: neither
+		too long nor too short.  The TTL should never be longer than the lease time
+		<xref target="stale"/>.   Shorter TTLs will result in more frequent data refreshes;
+		this increases latency on the client side, and increases load on any caching resolvers
+		and on the authoritative server.   Longer TTLs will increase the likelihood that data
+		in caches will be stale.   TTL minimums and maximums SHOULD be configurable by the
+		operator of the SRP server.
+		</t>
       </section>
 
       <section title="Maintenance">
-	<section title="Cleaning up stale data" anchor="stale">
-	  <t>Because the DNS&nbhy;SD registration protocol is automatic, and not managed by humans,
-	  some additional bookkeeping is required.  When an update is constructed by the client,
-	  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.
-	  The Update Lease Option contains two lease times: the Lease Time and the Key
-	  Lease Time.</t>
+		<section title="Cleaning up stale data" anchor="stale">
+		  <t>Because the DNS&nbhy;SD registration protocol is automatic, and not managed by humans,
+		  some additional bookkeeping is required.  When an update is constructed by the client,
+		  it MUST include include an EDNS(0) Update Lease Option <xref target="I-D.sekar-dns-ul"/>.
+		  The Update Lease Option contains two lease times: the Lease Time and the Key
+		  Lease Time.</t>
 
-	  <t>These leases are promises, similar to <xref target="RFC2131">DHCP leases</xref>,
-	  from the client that it will send a new update for the service registration before the
-	  lease time expires.  The Lease time is chosen to represent the time after the
-	  update during which the registered records other than the KEY record should be assumed
-	  to be valid.  The Key Lease time represents the time after the update during
-	  which the KEY record should be assumed to be valid.</t>
+		  <t>These leases are promises, similar to <xref target="RFC2131">DHCP leases</xref>,
+		  from the client that it will send a new update for the service registration before the
+		  lease time expires.  The Lease time is chosen to represent the time after the
+		  update during which the registered records other than the KEY record should be assumed
+		  to be valid.  The Key Lease time represents the time after the update during
+		  which the KEY record should be assumed to be valid.</t>
 
-	  <t>The reasoning behind the different lease times is discussed in the section on first-come,
-	  first-served naming <xref target="fcfs"/>.   SRP servers may be configured
-	  with limits for these values.   A default limit of two hours for the Lease and 14 days for the
-	  SIG(0) KEY are currently thought to be good choices.   Clients that are going to continue to use
-	  names on which they hold leases should update well before the lease ends, in case the registration
-	  service is unavailable or under heavy load.</t>
+		  <t>The reasoning behind the different lease times is discussed in the section on first-come,
+		  first-served naming <xref target="fcfs"/>.   SRP servers may be configured
+		  with limits for these values.   A default limit of two hours for the Lease and 14 days for the
+		  SIG(0) KEY are currently thought to be good choices.   Clients that are going to continue to use
+		  names on which they hold leases should update well before the lease ends, in case the registration
+		  service is unavailable or under heavy load.</t>
 
-	  <t>The SRP server MUST include an EDNS(0) Update Lease option in the
-	  response if the lease time proposed by the service has been shortened or lengthened.  The service
-	  MUST check for the EDNS(0) Update Lease option in the response and MUST use the lease
-	  times from that option in place of the options that it sent to the server when
-	  deciding when to update its registration.   The times may be shorter or longer than
-	  those specified in the SRP update; the client must honor them in either case.</t>
-	  
-	  <t>Clients should assume that each lease ends N seconds after the update was first
-	  transmitted, where N is the lease duration.  Servers should assume that each lease
-	  ends N seconds after the update that was successfully processed was received.  Because
-	  the server will always receive the update after the client sent it, this avoids the
-	  possibility of misunderstandings.</t>
+		  <t>The SRP server MUST include an EDNS(0) Update Lease option in the
+		  response if the lease time proposed by the service has been shortened or lengthened.  The service
+		  MUST check for the EDNS(0) Update Lease option in the response and MUST use the lease
+		  times from that option in place of the options that it sent to the server when
+		  deciding when to update its registration.   The times may be shorter or longer than
+		  those specified in the SRP update; the client must honor them in either case.</t>
+		  
+		  <t>Clients should assume that each lease ends N seconds after the update was first
+		  transmitted, where N is the lease duration.  Servers should assume that each lease
+		  ends N seconds after the update that was successfully processed was received.  Because
+		  the server will always receive the update after the client sent it, this avoids the
+		  possibility of misunderstandings.</t>
 
-	  <t>SRP servers MUST reject updates that do not include an
-	  EDNS(0) Update Lease option.  Dual-use servers MAY accept updates that don't include
-	  leases, but SHOULD differentiate between SRP updates and
-	  other updates, and MUST reject updates that would otherwise be SRP updates
-	  updates if they do not include leases.</t>
+		  <t>SRP servers MUST reject updates that do not include an
+		  EDNS(0) Update Lease option.  Dual-use servers MAY accept updates that don't include
+		  leases, but SHOULD differentiate between SRP updates and
+		  other updates, and MUST reject updates that would otherwise be SRP updates
+		  updates if they do not include leases.</t>
 
-	  <t>Lease times have a completely different function than TTLs.  On an authoritative
-	  DNS server, the TTL on a resource record is a constant: whenever that RR is served in
-	  a DNS response, the TTL value sent in the answer is the same.  The lease time is never
-	  sent as a TTL; its sole purpose is to determine when the authoritative DNS server will
-	  delete stale records.  It is not an error to send a DNS response with a TTL of 'n' when
-	  the remaining time on the lease is less than 'n'.</t>
-	</section>
-	<section title="Sleep Proxy">
-	  <t>Another use of SRP is for devices
-	  that sleep to reduce power consumption.</t>
+		  <t>Lease times have a completely different function than TTLs.  On an authoritative
+		  DNS server, the TTL on a resource record is a constant: whenever that RR is served in
+		  a DNS response, the TTL value sent in the answer is the same.  The lease time is never
+		  sent as a TTL; its sole purpose is to determine when the authoritative DNS server will
+		  delete stale records.  It is not an error to send a DNS response with a TTL of 'n' when
+		  the remaining time on the lease is less than 'n'.</t>
+		</section>
+		<section title="Sleep Proxy">
+		  <t>Another use of SRP is for devices
+		  that sleep to reduce power consumption.</t>
 
-	  <t>In this case, in addition to the
-	  <xref target="I-D.sekar-dns-ul">DNS Update Lease option</xref>
-	  described above, the device includes an
-	  <xref target="I-D.cheshire-edns0-owner-option">EDNS(0) OWNER Option</xref>.</t>
+		  <t>In this case, in addition to the
+		  <xref target="I-D.sekar-dns-ul">DNS Update Lease option</xref>
+		  described above, the device includes an
+		  <xref target="I-D.cheshire-edns0-owner-option">EDNS(0) OWNER Option</xref>.</t>
 
-	  <t>The EDNS(0) Update Lease option constitutes a promise by the device
-	  that it will wake up before this time elapses, to renew its registration
-	  and thereby demonstrate that it is still attached to the network.
-	  If it fails to renew the registration by this time, that indicates that it is
-	  no longer attached to the network, and its registration (except for the KEY in the
-	  Host Description) should be deleted.</t>
+		  <t>The EDNS(0) Update Lease option constitutes a promise by the device
+		  that it will wake up before this time elapses, to renew its registration
+		  and thereby demonstrate that it is still attached to the network.
+		  If it fails to renew the registration by this time, that indicates that it is
+		  no longer attached to the network, and its registration (except for the KEY in the
+		  Host Description) should be deleted.</t>
 
-	  <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
-	  and will not be receptive to normal network traffic.
-	  When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
-	  that signifies that the SRP server should set up a proxy for any
-	  IPv4 or IPv6 address records in the DNS Update message.
-	  This proxy should send ARP or ND messages claiming
-	  ownership of the IPv4 and/or IPv6 addresses in the records in question.
-	  In addition, proxy should answer future ARP or ND requests
-	  for those IPv4 and/or IPv6 addresses, claiming ownership of them.
-	  When the DNS server receives a TCP SYN or UDP packet addressed to
-	  one of the IPv4 or IPv6 addresses for which it proxying, it should
-	  then wake up the sleeping device using the information in the
-	  EDNS(0) OWNER Option. At present version 0 of the OWNER Option
-	  specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
-	  future versions could be extended to specify other wakeup mechanisms.</t>
+		  <t>The EDNS(0) OWNER Option indicates that the device will be asleep,
+		  and will not be receptive to normal network traffic.
+		  When a DNS server receives a DNS Update with an EDNS(0) OWNER Option,
+		  that signifies that the SRP server should set up a proxy for any
+		  IPv4 or IPv6 address records in the DNS Update message.
+		  This proxy should send ARP or ND messages claiming
+		  ownership of the IPv4 and/or IPv6 addresses in the records in question.
+		  In addition, proxy should answer future ARP or ND requests
+		  for those IPv4 and/or IPv6 addresses, claiming ownership of them.
+		  When the DNS server receives a TCP SYN or UDP packet addressed to
+		  one of the IPv4 or IPv6 addresses for which it proxying, it should
+		  then wake up the sleeping device using the information in the
+		  EDNS(0) OWNER Option. At present version 0 of the OWNER Option
+		  specifies the “Wake-on-LAN Magic Packet” that needs to be sent;
+		  future versions could be extended to specify other wakeup mechanisms.</t>
 
-	  <t>Note that although the authoritative DNS server that implements the SRP
-	  function need not be on the same link as the
-	  sleeping host, the Sleep Proxy must be on the same link.</t>
+		  <t>Note that although the authoritative DNS server that implements the SRP
+		  function need not be on the same link as the
+		  sleeping host, the Sleep Proxy must be on the same link.</t>
 
-	  <t>It is not required that sleepy nodes on a Constrained-Node Network support sleep
-	  proxy.  Such devices may have different mechanisms for dealing with sleep and wakeup.
-	  An SRP registration for such a device will be useful regardless of the mechanism
-	  whereby messages are delivered to the sleepy end device.   For example, the message
-	  might be held in a buffer for an extended period of time by an intermediate device
-	  on a mesh network, and then delivered to the device when it wakes up.   The exact
-	  details of such behaviors are out of scope for this document.</t>
-	</section>
+		  <t>It is not required that sleepy nodes on a Constrained-Node Network support sleep
+		  proxy.  Such devices may have different mechanisms for dealing with sleep and wakeup.
+		  An SRP registration for such a device will be useful regardless of the mechanism
+		  whereby messages are delivered to the sleepy end device.   For example, the message
+		  might be held in a buffer for an extended period of time by an intermediate device
+		  on a mesh network, and then delivered to the device when it wakes up.   The exact
+		  details of such behaviors are out of scope for this document.</t>
+		</section>
       </section>
     </section>
 
     <section title="Security Considerations">
-	  <section title="Source Validation">
-		<t>SRP updates have no authorization semantics other than
-		first-come, first-served.   This means that if an attacker from outside of the administrative
-		domain of the server knows the server's IP address, it can in principle send updates to the server
-		that will be processed successfully.   Servers should therefore be configured to reject updates
-		from source addresses outside of the administrative domain of the server.</t>
-		
-		<t>For Anycast updates, this validation must be enforced by every router that connects the
-		Constrained-Device Network
-		to the unconstrained portion of the network.   For TCP updates, the initial SYN-SYN+ACK
-		handshake prevents updates being forged by an off-network attacker.   In order to ensure that this
-		handshake happens, Service Discovery Protocol servers MUST NOT accept TCP Fast Open payloads.</t>
+      <section title="Source Validation">
+        <t>SRP updates have no authorization semantics other than
+        first-come, first-served.   This means that if an attacker from outside of the administrative
+        domain of the server knows the server's IP address, it can in principle send updates to the server
+        that will be processed successfully.   Servers should therefore be configured to reject updates
+        from source addresses outside of the administrative domain of the server.</t>
+        
+        <t>For Anycast updates, this validation must be enforced by every router that connects the
+        Constrained-Device Network
+        to the unconstrained portion of the network.   For TCP updates, the initial SYN-SYN+ACK
+        handshake prevents updates being forged by an off-network attacker.   In order to ensure that this
+        handshake happens, Service Discovery Protocol servers MUST NOT accept TCP Fast Open payloads.</t>
 
-		<t>Note that these rules only apply to the validation of SRP updates.
-		A server that accepts updates from DNS&nbhy;SD registration protocol
-		clients may also accept other DNS updates, and those DNS updates may be validated
-		using different rules.   However, in the case of a DNS service that accepts SRP
-		updates, the intersection of the SRP update rules and
-		whatever other update rules are present must be considered very carefully.</t>
+        <t>Note that these rules only apply to the validation of SRP updates.
+        A server that accepts updates from DNS&nbhy;SD registration protocol
+        clients may also accept other DNS updates, and those DNS updates may be validated
+        using different rules.   However, in the case of a DNS service that accepts SRP
+        updates, the intersection of the SRP update rules and
+        whatever other update rules are present must be considered very carefully.</t>
 
-		<t>For example, a normal, authenticated RFC2136 update to any RR that was added using SRP,
-		but that is authenticated using a different key, could be used to
-		override a promise made by the registration protocol, by replacing all or part of the
-		service registration information with information provided by a different client.  An
-		implementation that allows both kinds of updates should not allow updates to records added
-		by SRP updates using different authentication and authorization credentials.</t>
-	  </section>
-	  <section title="SIG(0) signature validation">
-		<t>This specification does not provide a mechanism for validating responses from DNS servers to
-		SRP clients.   In the case of Constrained Network/Constrained Node clients, such validation isn't
-		practical because there's no way to establish trust.   In principle, a KEY RR could be used by
-		a non-constrained SRP client to validate responses from the server, but this is not required,
-		nor do we specify a mechanism for determining which key to use.</t>
-	  </section>
-	  <section title="Required Signature Algorithm">
-		<t>For validation, SRP Servers MUST implement the ECDSAP256SHA256 signature algorithm.
-		SRP servers SHOULD implement the algorithms specified in <xref
-		target="I-D.ietf-dnsop-algorithm-update"/> section 3.1, in the validation column of the
-		table, starting with algorithm number 13.  SRP clients MUST NOT assume that any
-		algorithm numbered lower than 13 is available for use in validating SIG(0) signatures.</t>
-	  </section>
+        <t>For example, a normal, authenticated RFC2136 update to any RR that was added using SRP,
+        but that is authenticated using a different key, could be used to
+        override a promise made by the registration protocol, by replacing all or part of the
+        service registration information with information provided by a different client.  An
+        implementation that allows both kinds of updates should not allow updates to records added
+        by SRP updates using different authentication and authorization credentials.</t>
+      </section>
+      <section title="SIG(0) signature validation">
+        <t>This specification does not provide a mechanism for validating responses from DNS servers to
+        SRP clients.   In the case of Constrained Network/Constrained Node clients, such validation isn't
+        practical because there's no way to establish trust.   In principle, a KEY RR could be used by
+        a non-constrained SRP client to validate responses from the server, but this is not required,
+        nor do we specify a mechanism for determining which key to use.</t>
+      </section>
+      <section title="Required Signature Algorithm">
+        <t>For validation, SRP Servers MUST implement the ECDSAP256SHA256 signature algorithm.
+        SRP servers SHOULD implement the algorithms specified in <xref
+        target="I-D.ietf-dnsop-algorithm-update"/> section 3.1, in the validation column of the
+        table, starting with algorithm number 13.  SRP clients MUST NOT assume that any
+        algorithm numbered lower than 13 is available for use in validating SIG(0) signatures.</t>
+      </section>
     </section>
     <section title="Privacy Considerations">
+      <t>
+        Because DNSSD SRP updates can be sent off-link, the privacy implications of SRP are different
+        than for multicast DNS responses.  Host implementations that are using TCP SHOULD also use TLS
+        if available.  Server implementations MUST offer TLS support.  The use of TLS with DNS is described
+        in <xref target="RFC7858"/> and <xref target="RFC8310"/>.
+      </t>
+      <t>
+        Hosts that implement TLS support SHOULD NOT fall back to TCP; since servers are required to support
+        TLS, it is entirely up to the host implementation whether to use it.
+      </t>
     </section>
 
-    <section anchor="delegation" title="Delegation of 'services.arpa.'">
-      <t>In order to be fully functional, there must be a delegation of 'services.arpa.' in the
+    <section anchor="delegation" title="Delegation of 'service.arpa.'">
+      <t>In order to be fully functional, there must be a delegation of 'service.arpa.' in the
       '.arpa.' zone <xref target="RFC3172"/>. This delegation should be set up as was done for
       'home.arpa', as a result of the specification in <xref target="RFC8375"/>Section 7.</t>
     </section>
 
     <section title="IANA Considerations">
-	  <section title="Registration and Delegation of 'services.arpa' as a Special-Use Domain Name">
-		<t>IANA is requested to record the domain name 'services.arpa.' in the Special-Use Domain Names registry
-		<xref target="SUDN"/>. IANA is requested, with the approval of IAB, to implement the delegation requested in
-		<xref target="delegation"/>.</t>
-		
-		<t>IANA is further requested to add a new entry to the "Transport-Independent Locally-Served Zones" subregistry of the
-		the "Locally-Served DNS Zones" registry<xref target="LSDZ"/>.  The entry will be for the domain 'services.arpa.' with the
-		description "DNS&nbhy;SD Registration Protocol Special-Use Domain", listing this document as the reference.</t>
-	  </section>
-	  <section title="'dnssd-srp' Service Name">
-		<t>IANA is also requested to add a new entry to the Service Names and Port Numbers
-		registry for dnssd-srp with a transport type of tcp.  No port number is to be assigned.
-		The reference should be to this document, and the Assignee and Contact information should
-		reference the authors of this document.  The Description should be as follows:</t>
-
-		<t>Availability of DNS Service Discovery Service Registration Protocol Service for a
-		given domain is advertised using the "_dnssd&nbhy;srp._tcp.&lt;domain&gt;." SRV record gives
-		the target host and port where DNSSD Service Registration Service is provided for the
-		named domain.</t>
+      <section title="Registration and Delegation of 'service.arpa' as a Special-Use Domain Name">
+        <t>IANA is requested to record the domain name 'service.arpa.' in the Special-Use Domain Names registry
+        <xref target="SUDN"/>. IANA is requested, with the approval of IAB, to implement the delegation requested in
+        <xref target="delegation"/>.</t>
+        
+        <t>IANA is further requested to add a new entry to the "Transport-Independent Locally-Served Zones" subregistry of the
+        the "Locally-Served DNS Zones" registry<xref target="LSDZ"/>.  The entry will be for the domain 'service.arpa.' with the
+        description "DNS&nbhy;SD Registration Protocol Special-Use Domain", listing this document as the reference.</t>
       </section>
-	  <section title="Anycast Address">
-		<t>IANA is requested to allocate an IPv6 Anycast address from the IPv6 Special-Purpose Address
-		Registry, similar to the Port Control Protocol anycast address, 2001:1::1.   This address is referred
-		to within the document as TBD1, and the document should be updated to reflect the address that was
-		allocated.</t>
-	  </section>
-	</section>
+      <section title="'dnssd-srp' Service Name">
+        <t>IANA is also requested to add a new entry to the Service Names and Port Numbers
+        registry for dnssd-srp with a transport type of tcp.  No port number is to be assigned.
+        The reference should be to this document, and the Assignee and Contact information should
+        reference the authors of this document.  The Description should be as follows:</t>
+
+        <t>Availability of DNS Service Discovery Service Registration Protocol Service for a
+        given domain is advertised using the "_dnssd&nbhy;srp._tcp.&lt;domain&gt;." SRV record gives
+        the target host and port where DNSSD Service Registration Service is provided for the
+        named domain.</t>
+      </section>
+      <section title="'dnssd-srp-tls' Service Name">
+        <t>IANA is also requested to add a new entry to the Service Names and Port Numbers
+        registry for dnssd-srp with a transport type of tcp.  No port number is to be assigned.
+        The reference should be to this document, and the Assignee and Contact information should
+        reference the authors of this document.  The Description should be as follows:</t>
+
+        <t>Availability of DNS Service Discovery Service Registration Protocol Service for a
+        given domain over TLS is advertised using the "_dnssd&nbhy;srp&nbhy;tls._tcp.&lt;domain&gt;."
+        SRV record gives the target host and port where DNSSD Service Registration Service is
+        provided for the named domain.</t>
+      </section>
+      <section title="Anycast Address">
+        <t>IANA is requested to allocate an IPv6 Anycast address from the IPv6 Special-Purpose Address
+        Registry, similar to the Port Control Protocol anycast address, 2001:1::1.   This address is referred
+        to within the document as TBD1, and the document should be updated to reflect the address that was
+        allocated.</t>
+      </section>
+    </section>
 
     <section title="Acknowledgments">
       <t>Thanks to Toke Høiland-Jørgensen for a thorough technical review, to Tamara Kemper for
@@ -739,18 +779,18 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.8375" ?>
       <?rfc include="reference.I-D.ietf-dnsop-algorithm-update" ?>
       <reference anchor="SUDN" target="https://www.iana.org/assignments/special-use-domain-names/special-use-domain-names.xhtml">
-	<front>
-	  <title>Special-Use Domain Names Registry</title>
-	  <author/>
-	  <date month="July" year="2012"/>
-	</front>
+		<front>
+		  <title>Special-Use Domain Names Registry</title>
+		  <author/>
+		  <date month="July" year="2012"/>
+		</front>
       </reference>
       <reference anchor="LSDZ" target="https://www.iana.org/assignments/locally-served-dns-zones/locally-served-dns-zones.xhtml">
-	<front>
-	  <title>Locally-Served DNS Zones Registry</title>
-	  <author/>
-	  <date month="July" year="2011"/>
-	</front>
+		<front>
+		  <title>Locally-Served DNS Zones Registry</title>
+		  <author/>
+		  <date month="July" year="2011"/>
+		</front>
       </reference>
     </references>
 
@@ -767,6 +807,8 @@ Check output with <http://tools.ietf.org/tools/idnits/>
       <?rfc include="reference.RFC.6761" ?>
       <?rfc include="reference.RFC.6762" ?>
       <?rfc include="reference.RFC.7228" ?>
+      <?rfc include="reference.RFC.7858" ?>
+      <?rfc include="reference.RFC.8310" ?>
       <?rfc include="reference.I-D.ietf-dnssd-hybrid"?>
       <?rfc include="reference.I-D.ietf-dnssd-push"?>
       <?rfc include="reference.I-D.cheshire-dnssd-roadmap" ?>
@@ -785,49 +827,49 @@ Check output with <http://tools.ietf.org/tools/idnits/>
 
     </references>
 
-	<section anchor="bind-example" title="Sample BIND9 configuration for default.services.arpa.">
-	  <t>
-	  <figure title="Zone Configuration in named.conf"><artwork><![CDATA[
-	  zone "default.services.arpa." {
-		type master;
-		file "/etc/bind/master/service.db";
-		allow-update { key demo.default.services.arpa.; };
-	  };
-]]></artwork></figure></t>
-	  <t><figure title="Example Zone file"><artwork><![CDATA[
+    <section anchor="bind-example" title="Sample BIND9 configuration for default.service.arpa.">
+      <t>
+		<figure title="Zone Configuration in named.conf"><artwork><![CDATA[
+zone "default.service.arpa." {
+  type master;
+  file "/etc/bind/master/service.db";
+  allow-update { key demo.default.service.arpa.; };
+};
+		]]></artwork></figure></t>
+		<t><figure title="Example Zone file"><artwork><![CDATA[
 $ORIGIN .
-$TTL 57600	; 16 hours
-default.services.arpa	IN SOA	ns3.default.services.arpa. postmaster.default.services.arpa. (
-				2951053287 ; serial
-				3600       ; refresh (1 hour)
-				1800       ; retry (30 minutes)
-				604800     ; expire (1 week)
-				3600       ; minimum (1 hour)
-				)
-			NS	ns3.default.services.arpa.
-			SRV	0 0 53 ns3.default.services.arpa.
-$ORIGIN default.services.arpa.
-$TTL 3600	; 1 hour
-_ipps._tcp		PTR	demo._ipps._tcp
-$ORIGIN _ipps._tcp.default.services.arpa.
-demo		TXT	"0"
-			SRV	0 0 9992 demo.default.services.arpa.
-$ORIGIN _udp.default.services.arpa.
-$TTL 3600	; 1 hour
-_dns-update		PTR	ns3.default.services.arpa.
-$ORIGIN _tcp.default.services.arpa.
-_dnssd-srp		PTR	ns3.default.services.arpa.
-$ORIGIN default.services.arpa.
-$TTL 300	; 5 minutes
-ns3			AAAA	2001:db8:0:1::1
-$TTL 3600	; 1 hour
-demo		AAAA 2001:db8:0:2::1
-			KEY	513 3 13 (
-				qweEmaaq0FAWok5//ftuQtZgiZoiFSUsm0srWREdywQU
-				9dpvtOhrdKWUuPT3uEFF5TZU6B4q1z1I662GdaUwqg==
-				); alg = ECDSAP256SHA256 ; key id = 15008
-			AAAA	::1
+$TTL 57600  ; 16 hours
+default.service.arpa IN SOA          ns3.default.service.arpa. postmaster.default.service.arpa. (
+2951053287 ; serial
+3600       ; refresh (1 hour)
+1800       ; retry (30 minutes)
+604800     ; expire (1 week)
+3600       ; minimum (1 hour)
+)
+                        NS           ns3.default.service.arpa.
+					    SRV 0 0 53   ns3.default.service.arpa.
+$ORIGIN default.service.arpa.
+$TTL 3600   ; 1 hour
+_ipps._tcp              PTR          demo._ipps._tcp
+$ORIGIN _ipps._tcp.default.service.arpa.
+demo                    TXT          "0"
+                        SRV 0 0 9992 demo.default.service.arpa.
+$ORIGIN _udp.default.service.arpa.
+$TTL 3600   ; 1 hour
+_dns-update             PTR          ns3.default.service.arpa.
+$ORIGIN _tcp.default.service.arpa.
+_dnssd-srp              PTR          ns3.default.service.arpa.
+$ORIGIN default.service.arpa.
+$TTL 300    ; 5 minutes
+ns3                     AAAA         2001:db8:0:1::1
+$TTL 3600   ; 1 hour
+demo                    AAAA         2001:db8:0:2::1
+                        KEY 513 3 13 (
+						   qweEmaaq0FAWok5//ftuQtZgiZoiFSUsm0srWREdywQU
+						   9dpvtOhrdKWUuPT3uEFF5TZU6B4q1z1I662GdaUwqg==
+						); alg = ECDSAP256SHA256 ; key id = 15008
+						AAAA    ::1
 ]]></artwork></figure></t>
-	</section>
+    </section>
   </back>
 </rfc>
