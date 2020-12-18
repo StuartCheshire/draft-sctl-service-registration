@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE rfc SYSTEM "rfc2629-xhtml.ent">
-<rfc category="std" submissionType="IETF" docName="draft-ietf-dnssd-srp-06" ipr="trust200902"
+<rfc category="std" submissionType="IETF" docName="draft-ietf-dnssd-srp-07" ipr="trust200902"
      xmlns:xi="http://www.w3.org/2001/XInclude" version="3"
      scripts="Common,Latin" sortRefs="false"
      symRefs="true" tocDepth="3" tocInclude="true" xml:lang="en">
@@ -35,7 +35,7 @@
       </address>
     </author>
 
-    <date year='2020' month='November' day='18'/>
+    <date year='2020' month='December' day='18'/>
     <area>Internet</area>
     <workgroup>Internet Engineering Task Force</workgroup>
     <keyword>Multicast DNS</keyword>
@@ -312,8 +312,8 @@
 	      writable stable storage on the SRP client, the SRP client MUST be pre-configured with a public/private key pair in
 	      read-only storage that can be used.  This key pair MUST be unique to the device.  This key pair MUST be unique to the
 	      device. A device with rewritable storage should retain this key indefinitely.  When the device changes ownership, it
-	      may be appropriate to erase the old key and install a new one. Therefore the key MAY be overwritten as a
-	      result of a full reset of the device (e.g., a "factory reset").</t>
+	      may be appropriate to erase the old key and install a new one. Therefore, the SRP client on the device SHOULD provide
+	      a mechanism to overwrite the key, for example as the result of a "factory reset."</t>
             <t>
 	      When sending DNS updates, the service includes a KEY record containing the public portion of the key in each Host
 	      Description update and each Service Description update.  Each KEY record MUST contain the same public key.  The update
@@ -358,25 +358,53 @@
 	    <name>Compression in SRV records</name>
 	    <t>
 	      Although <xref target="RFC2782"/> requires that the target name in the SRV record not be compressed, an SRP client
-	      SHOULD compress the target in the SRV record. The motivation for <em>not</em> compressing in RFC2782 is not
-	      stated, but is assumed to be because a caching resolver that does not understand the format of the SRV record
-	      might store it as binary data and thus return an invalid pointer in response to a query. This does not apply in
-	      the case of SRP case: an SRP server needs to understand SRV records in order to validate the SRP
-	      update. Compression of the target potentially saves substantial space in the SRP update.</t>
+	      SHOULD compress the target in the SRV record. The motivation for <em>not</em> compressing in RFC2782 is not stated,
+	      but is assumed to be because a caching resolver that does not understand the format of the SRV record might store it
+	      as binary data and thus return an invalid pointer in response to a query. This does not apply in the case of SRP: an
+	      SRP server needs to understand SRV records in order to validate the SRP update. Compression of the target potentially
+	      saves substantial space in the SRP update.</t>
           </section>
           <section anchor="remove">
 	    <name>Removing published services</name>
-            <t>
-	      To remove a service registration, the SRP client retransmits its most recent update with an Update Lease option that
-	      has a LEASE value of zero. If the registration is to be permanently removed, KEY-LEASE should also be zero. Otherwise,
-	      it should have the same value it had previously; this holds the name in reserve for when the SRP client is once again
-	      able to provide the service.</t>
-            <t>
-	      SRP clients are normally expected to remove all service instances when removing a host.  However, in some cases a SRP
-	      client may not have retained sufficient state to know that some service instance is pointing to a host that it is
-	      removing.  An SRP server can assume that all service instances pointing to a host entry that's being removed are no
-	      longer valid.  Therefore, SRP servers MAY remove all service instances pointing to a host when a host is removed, even
-	      if the SRP client doesn't remove them explicitly.</t>
+	    <section>
+	      <name>Removing all published services</name>
+              <t>
+		To remove all the services registered to a particular host, the SRP client retransmits its most recent update with an
+		Update Lease option that has a LEASE value of zero. If the registration is to be permanently removed, KEY-LEASE should
+		also be zero. Otherwise, it should have the same value it had previously; this holds the name in reserve for when the
+		SRP client is once again able to provide the service.</t>
+              <t>
+		SRP clients are normally expected to remove all service instances when removing a host.  However, in some cases a SRP
+		client may not have retained sufficient state to know that some service instance is pointing to a host that it is
+		removing.  This method of removing services is intended for the case where the client is going offline and does
+		not want its services advertised. Therefore, it is sufficient for the client to send the
+		<xref target="hdi">Host Description Instruction</xref>.
+	      </t>
+	      <t>
+		To support this, when removing services based on the lease time being zero, an SRP server MUST remove all service
+		instances pointing to a host when a host is removed, even if the SRP client doesn't list them explicitly. If the
+		key lease time is nonzero, the SRP server MUST NOT delete the KEY records for these SRP clients.
+	      </t>
+	    </section>
+	    <section>
+	      <name>Removing some published services</name>
+	      <t>
+		In some use cases a client may need to remove some specific service, without removing its other services.
+		This can be accomplished in one of two ways. The first alternative is to send a valid SRP update where the only
+		Service Discovery instruction is a remove-only instruction, and the only Service Description instruction
+		is a remove-only instruction. In this case, the host lease will be updated with the lease time provided
+		in the SRP update.
+	      </t>
+	      <t>
+		The second alternative is to send a normal SRP update, but as in the first alternative, including a Service
+		Discovery Instruction and a Service Description that delete the service being removed. This can be particularly
+		useful when one service is being replaced with another, since this can be done in a single SRP Update.
+	      </t>
+	      <t>
+		In neither of these cases is it permissible to delete the host. All services must point to a host. If a host
+		is to be deleted, this must be done using the zero-lease deletion method.
+	      </t>
+	    </section>
           </section>
       </section></section>
 
@@ -388,9 +416,9 @@
 	    The SRP server first validates that the DNS Update is a syntactically and semantically valid DNS Update according to
 	    the rules specified in RFC2136.</t>
           <t>
-	    SRP Updates consist of a set of <em>instructions</em> that together add one or more services. Each instruction consists either
-	    of a single add, or a delete followed by an add. When an instruction contains a delete and an add, the delete MUST
-	    precede the add.</t>
+	    SRP Updates consist of a set of <em>instructions</em> that together add or remove one or more services. Each instruction
+	    consists either of a single add, a single delete, or a delete optionally followed by an add. When an instruction
+	    contains a delete and an add, the delete MUST precede the add.</t>
           <t>
 	    The SRP server checks each instruction in the SRP update to see that it is either a Service Discovery update, a
 	    Service Description update, or a Host Description update.  Order matters in DNS updates.  Specifically, deletes must
@@ -403,44 +431,55 @@
 
 	  <section>
 	    <name>Service Discovery Instruction</name>
-            <t>An Instruction is a Service Discovery Instruction if it contains</t>
+            <t>An instruction is a Service Discovery Instruction if it contains</t>
             <ul spacing="compact">
-	      <li>exactly one "Add to an RRSet" (<xref target="RFC2136" section="2.5.1" sectionFormat="comma"/>) RR,</li>
-	      <li>which is a PTR RR,</li>
+	      <li>exactly one "Add to an RRSet" or one "Delete an RR from an RRSet"
+		(<xref target="RFC2136" section="2.5.1" sectionFormat="comma"/>) RR update,</li>
+	      <li>which updates a PTR RR,</li>
 	      <li>which points to a Service Instance Name</li>
-	      <li>for which a Service Description Instruction is present in the SRP Update.</li>
-	      <li>Service Discovery Instructions do not contain any deletes, and do not contain any other adds.</li>
+	      <li>for which a Service Description Instruction is present in the SRP Update</li>
+	      <li>if the Service Discovery update is an "Add to an RRSet" instruction, the Service Description Instruction does
+		not match if it does not contain an "Add to an RRset" update for the SRV RR describing that service.</li>
+	      <li>if the Service Discovery Instruction is an "Delete an RR from an RRSet" update, the Service Description Instruction does
+		not match if it contains an "Add to an RRset" update.</li>
+	      <li>Service Discovery Instructions do not contain any other add or delete updates.</li>
             </ul>
 	  </section>
 
 	  <section>
 	    <name>Service Description Instruction</name>
 
-            <t>An Instruction is a Service Description Instruction if, for the appropriate Service Instance Name, it contains</t>
+            <t>An instruction is a Service Description Instruction if, for the appropriate Service Instance Name, it contains</t>
             <ul spacing="compact">
 	      <li>
 		exactly one "Delete all RRsets from a name" update for the service instance name
 		(<xref target="RFC2136" section="2.5.3" sectionFormat="comma"/>),</li>
 	      <li>
-		exactly one "Add to an RRset" SRV RR,</li>
+		zero or one "Add to an RRset" SRV RR,</li>
 	      <li>
-		zero or one "Add to an RRset" KEY RR that contains the public key corresponding to the private key
+		zero or one "Add to an RRset" KEY RR that, if present, contains the public key corresponding to the private key
 		that was used to sign the message (if present, the KEY MUST match the KEY RR given in the Host Description),</li>
 	      <li>
-		one or more "Add to an RRset" TXT RRs,</li>
+		zero or more "Add to an RRset" TXT RRs,</li>
 	      <li>
-		and the target of the SRV RR Add points to a hostname for which there is a Host Description Instruction in
-		the SRP Update.</li>
+		If there is one "Add to an RRset" SRV update, there MUST be at least one "Add to an RRset" TXT update.</li>
+	      <li>
+		the target of the SRV RR Add, if present points to a hostname for which there is a Host Description Instruction in
+		the SRP Update, or</li>
+	      <li>
+		if there is no "Add to an RRset" SRV RR, then there is an existing SRV RR on the name specified in the "Delete all
+		RRsets from a name" update that to a hostname for which there is a Host Description Instruction in the SRP Update,
+		and there is a KEY RR on that name which matches the key with which the SRP Update was signed.</li>
 	      <li>
 		Service Descriptions Instructions do not modify any other RRs.</li>
             </ul>
 	    <t>An SRP server MUST correctly handle compressed names in the SRV target.</t>
 	  </section>
 
-	  <section>
+	  <section anchor="hdi">
 	    <name>Host Description Instruction</name>
 
-            <t>An Instruction is a Host Description Instruction if, for the appropriate hostname, it contains</t>
+            <t>An instruction is a Host Description Instruction if, for the appropriate hostname, it contains</t>
             <ul spacing="compact">
 	      <li>
 		exactly one "Delete all RRsets from a name" RR,</li>
@@ -587,6 +626,24 @@
           on which they hold leases should update well before the lease ends, in case the registration service is unavailable or
           under heavy load.</t>
 
+	<t>
+	  The lease time applies specifically to the host. All service instances, and all service entries for such service
+	  instances, depend on the host. When the lease on a host expires, the host and all services that reference it MUST be
+	  removed at the same time&mdash;it is never valid for a service instance to remain when the host it references has been
+	  removed. If the KEY record for the host is to remain, the KEY record for any services that reference it MUST also
+	  remain. However, the service PTR record MUST be removed, since it has no key associated with it, and since it is never
+	  valid to have a service PTR record for which there is no service instance on the target of the PTR record.
+	</t>
+
+	<t>
+	  SRP Servers SHOULD also track a lease time per service instance. The reason for doing this is that a client may
+	  re-register a host with a different set of services, and not remember that some different service instance had
+	  previously been registered. In this case, when that service instance lease expires, the SRP server SHOULD
+	  remove the service instance (although the KEY record for the service instance SHOULD be retained until the key
+	  lease on that service expires). This is beneficial because if the SRP client continues to renew the host, but
+	  never mentions the stale service again, the stale service will continue to be advertised.
+	</t>
+
 	<t>The SRP server MUST include an EDNS(0) Update Lease option in the
           response if the lease time proposed by the service has been shortened or lengthened.  The service
           MUST check for the EDNS(0) Update Lease option in the response and MUST use the lease
@@ -688,8 +745,8 @@
 	<t>For example, a normal, authenticated DNS update to any RR that was added using SRP, but that is authenticated using a
 	  different key, could be used to override a promise made by the registration protocol, by replacing all or part of the
 	  service registration information with information provided by an SRP client.  An implementation that allows both kinds of
-	  updates should not allow DNS Update clients to updateupdate records added by SRP clients using different authentication
-	  and authorization credentials.</t>
+	  updates should not allow DNS Update clients that are using different authentication and authorization credentialsto to
+	  update records added by SRP clients.</t>
       </section>
       <section>
 	<name>SRP Server Authentication</name>
@@ -798,9 +855,9 @@
 
     <section>
       <name>Acknowledgments</name>
-      <t>Thanks to Toke Høiland-Jørgensen, Jonathan Hui and Esko Dijk for their thorough technical reviews, to Tamara Kemper for
-	doing a nice developmental edit, Tim Wattenberg for doing a service implementation at the
-	Montreal Hackathon at IETF 102, and Tom Pusateri for reviewing during the hackathon and afterwards.</t>
+      <t>Thanks to <contact fullname="Toke Høiland-Jørgensen"/>, Jonathan Hui and Esko Dijk for their thorough technical reviews, to
+	Tamara Kemper for doing a nice developmental edit, Tim Wattenberg for doing a service implementation at the Montreal
+	Hackathon at IETF 102, and Tom Pusateri for reviewing during the hackathon and afterwards.</t>
     </section>
   </middle>
 
